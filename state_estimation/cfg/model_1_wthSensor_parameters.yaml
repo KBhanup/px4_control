@@ -26,10 +26,10 @@ roll_cmd_w: 250
 thrust_cmd_w: 250
 
 # Backup PID gains
-x_pid: [1.0, 0.0, 0.1]
-y_pid: [1.0, 0.0, 0.1]
-z_pid: [1.0, 0.0, 0.1]
-o_pid: [1.0, 0.0, 0.1]
+x_pid: [1.21, 0.0, 0.2816]
+y_pid: [1.218, 0.0, 0.2325]
+z_pid: [0.9811, 0.0, 0.0245]
+o_pid: [0.3, 0.0, 0.0]
 
 # RC Switches
 auto_channel: 10
