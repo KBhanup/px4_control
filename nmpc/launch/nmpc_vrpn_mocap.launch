@@ -1,0 +1,10 @@
+<launch>
+    
+
+    <!-- Start px4 mavros-->
+    <include file="$(find f550_testbed)/launch/px4_mocap.launch"/>
+
+    <!-- Start vrpn node-->
+    <include file="$(find f550_testbed)/launch/vrpn.launch"/>
+
+</launch>

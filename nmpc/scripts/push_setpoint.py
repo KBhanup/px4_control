@@ -11,9 +11,9 @@ trajectory_pub = rp.Publisher('/drone_trajectory', Trajectory, queue_size=1, lat
 
 # Prepare setpoint message
 setpoint_msg = Setpoint()
-setpoint_msg.position.x = 0.0
+setpoint_msg.position.x = -1.6
 setpoint_msg.position.y = 0.0
-setpoint_msg.position.z = 1.5
+setpoint_msg.position.z = 1.9
 setpoint_msg.velocity.x = 0.0
 setpoint_msg.velocity.y = 0.0
 setpoint_msg.velocity.z = 0.0

@@ -1,0 +1,33 @@
+<launch>
+	<!-- Start recording the flight log data -->
+	<node pkg="rosbag" type="record" name="flight_logjoy_bagfile" output="screen"
+		  args="record -o $(find nmpc)/flight_logs_nmpc_flt
+
+/rosout
+/rosout_agg
+
+/mavros/vision_pose/pose
+/vrpn_client_node/Mag_Sensorpack/pose
+/marker/pose
+/stag_ros/markers
+
+/diagnostics
+/mavros/state
+/drone_state
+/mavros/local_position/odom
+/mavros/rc/in
+/drone_trajectory
+/drone_trajectory_log
+
+
+/mavros/imu/data
+/mavros/actuator_control
+/mavros/setpoint_raw/local
+/mavros/setpoint_raw/attitude
+
+
+
+"
+	/>
+</launch>
+

@@ -1,0 +1,24 @@
+<launch>
+    
+
+    <!-- Start px4 mavros-->
+    <include file="$(find f550_testbed)/launch/px4_mocap.launch"/>
+
+    <!-- Start vrpn node-->
+    <include file="$(find f550_testbed)/launch/vrpn.launch"/>
+
+    <!-- Start nmpc node-->
+    <include file="$(find nmpc)/launch/px4_pilot.launch"/>
+
+    <!-- Start state_estimation node-->
+    <include file="$(find state_estimation)/launch/state_observer.launch"/>
+
+
+    <!-- Start flight data log-->
+    <include file="$(find nmpc)/launch/log_nmpc_flt.launch"/>
+
+
+
+
+
+</launch>

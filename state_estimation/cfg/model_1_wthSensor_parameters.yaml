@@ -1,0 +1,35 @@
+# Attitude Dynamics
+t_roll: 0.12824
+k_roll: 0.90881
+t_pitch: 0.12494
+k_pitch: 0.88609
+
+# Damping coefficients
+damping_coef: [-0.29342, -0.29342, -0.13667]
+
+# Thrust coefficient
+k_thrust: 17.5196
+
+# Gravity on world frame
+gravity: -9.8066
+
+# Cost function weights
+# pos_w, vel_x -> [x, y, z]
+# att_w -> [roll, pitch, yaw]
+pos_w: [25, 25, 30]
+vel_w: [11, 11, 11]
+att_w: [1, 1, 1]
+
+yaw_rate_cmd_w: 100
+pitch_cmd_w: 250
+roll_cmd_w: 250
+thrust_cmd_w: 250
+
+# RC Switches
+auto_channel: 10
+auto_on: 2006
+auto_off: 1494
+
+offboard_channel: 4 
+offboard_on: 2006
+offboard_off: 982

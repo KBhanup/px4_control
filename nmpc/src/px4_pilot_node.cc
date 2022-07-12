@@ -3,7 +3,7 @@
 int main(int argc, char **argv) {
   ros::init(argc, argv, "px4_pilot");
   ros::NodeHandle nh;
-  px4_ctrl::PX4Pilot px4_pilot(nh, 20);
+  px4_ctrl::PX4Pilot px4_pilot(nh, 10);
 
   ros::spin();
 
