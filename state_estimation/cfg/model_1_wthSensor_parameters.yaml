@@ -25,6 +25,12 @@ pitch_cmd_w: 250
 roll_cmd_w: 250
 thrust_cmd_w: 250
 
+# Backup PID gains
+x_pid: [1.0, 0.0, 0.1]
+y_pid: [1.0, 0.0, 0.1]
+z_pid: [1.0, 0.0, 0.1]
+o_pid: [1.0, 0.0, 0.1]
+
 # RC Switches
 auto_channel: 10
 auto_on: 2006

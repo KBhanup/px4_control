@@ -248,11 +248,8 @@ void AcadosNMPC::setCurrentState(const trajectory_setpoint &state,
 }
 
 bool AcadosNMPC::getCommands(std::vector<double> &ctrl) {
-  // Update reference and reference index
+  // Update reference
   updateReference();
-  trajectory_index = trajectory_index + 1 < trajectory_length
-                         ? trajectory_index + 1
-                         : trajectory_index;
 
   int status = drone_w_disturbances_acados_solve(acados_ocp_capsule);
 
@@ -274,6 +271,11 @@ bool AcadosNMPC::getCommands(std::vector<double> &ctrl) {
     ctrl.push_back(u_0[1]);
     ctrl.push_back(u_0[2]);
     ctrl.push_back(u_0[3]);
+
+    // Update reference index
+    trajectory_index = trajectory_index + 1 < trajectory_length
+                           ? trajectory_index + 1
+                           : trajectory_index;
 
     return true;
   } else {

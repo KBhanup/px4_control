@@ -5,6 +5,7 @@
 
 // Acados NMPC
 #include "nmpc/acados_nmpc.h"
+#include "nmpc/pid.h"
 
 // ROS
 #include "ros/ros.h"
@@ -106,6 +107,14 @@ class PX4Pilot {
   bool allow_offboard;
   bool trajectory_loaded;
   ros::Time last_state_time;
+
+  // Backup PIDs
+  PIDController *x_pid;
+  PIDController *y_pid;
+  PIDController *z_pid;
+  PIDController *o_pid;
+
+  std::vector<double> x_pid_k, y_pid_k, z_pid_k, o_pid_k;
 
   model_parameters model_params;
   trajectory_setpoint drone_state;

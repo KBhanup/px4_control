@@ -4,7 +4,6 @@
 
 // acados
 #include "acados/utils/math.h"
-// #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_solver_drone_w_disturbances.h"
@@ -73,6 +72,14 @@ class AcadosNMPC {
                      const trajectory_setpoint &start_point,
                      const trajectory_setpoint &goal_point,
                      const std::vector<double> &disturbances);
+
+  /**
+   * @brief Returns the current setpoint
+   * @returns current trajectory setpoint
+   */
+  trajectory_setpoint getCurrentSetpoint() const {
+    return current_reference_trajectory[trajectory_index];
+  }
 
   /**
    * @brief Sets the current UAS state

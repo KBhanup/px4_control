@@ -74,6 +74,12 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
     exit(1);
   }
 
+  // Initialize backup PIDs
+  x_pid = new PIDController(x_pid_k[0], x_pid_k[1], x_pid_k[2], 1);
+  y_pid = new PIDController(y_pid_k[0], y_pid_k[1], y_pid_k[2], 1);
+  z_pid = new PIDController(z_pid_k[0], z_pid_k[1], z_pid_k[2], 1);
+  o_pid = new PIDController(o_pid_k[0], o_pid_k[1], o_pid_k[2], 1);
+
   // Setup Subscribers
   mavros_status_sub =
       nh.subscribe("/mavros/state", 1, &PX4Pilot::mavrosStatusCallback, this);
@@ -170,9 +176,9 @@ void PX4Pilot::droneStateCallback(
   drone_state.q_roll = r;
 
   disturbances.clear();
-  //disturbances.push_back(0.0);
-  //disturbances.push_back(0.0);
-  //disturbances.push_back(0.0);
+  // disturbances.push_back(0.0);
+  // disturbances.push_back(0.0);
+  // disturbances.push_back(0.0);
   disturbances.push_back(clipValue(msg.disturbances.x, -0.5, 0.5));
   disturbances.push_back(clipValue(msg.disturbances.y, -0.5, 0.5));
   disturbances.push_back(clipValue(msg.disturbances.z, -0.5, 0.5));
@@ -261,6 +267,11 @@ void PX4Pilot::loadParameters() {
   double roll_cmd_w = loadSingleParameter(nh_pvt, "roll_cmd_w", 100.0);
   double thrust_cmd_w = loadSingleParameter(nh_pvt, "thrust_cmd_w", 100.0);
 
+  x_pid_k = loadVectorParameter(nh_pvt, "x_pid", vector_parameter);
+  y_pid_k = loadVectorParameter(nh_pvt, "y_pid", vector_parameter);
+  z_pid_k = loadVectorParameter(nh_pvt, "z_pid", vector_parameter);
+  o_pid_k = loadVectorParameter(nh_pvt, "o_pid", vector_parameter);
+
   // Cost function weights
   weights.push_back(pos_w[0]);
   weights.push_back(pos_w[1]);
@@ -327,10 +338,6 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
                       vel_cmd.IGNORE_PZ | vel_cmd.IGNORE_AFX |
                       vel_cmd.IGNORE_AFY | vel_cmd.IGNORE_AFZ |
                       vel_cmd.IGNORE_YAW;
-  vel_cmd.velocity.x = 0.0;
-  vel_cmd.velocity.y = 0.0;
-  vel_cmd.velocity.z = 0.0;
-  vel_cmd.yaw_rate = 0.0;
 
   while (ros::ok()) {
     {  // Lock status mutex
@@ -396,16 +403,34 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
           att_cmd.header.stamp = ros::Time::now();
           att_control_pub.publish(att_cmd);
         } else {
-          /** TODO: This doesn't work. The RC Callback set the controller flag
-           * back to true */
-          ROS_ERROR("NMPC failed to return command. Hovering");
-          // controller_enabled = false;
+          ROS_ERROR("NMPC failed to return command. Using Backup Velocity PID");
+          trajectory_setpoint setpoint = getCurrentSetpoint();
+          double error_time = ros::Time::now().toSec();
+
+          double syaw = sin(current_yaw);
+          double cyaw = cos(current_yaw);
+          double dx = current_setpoint.pos_x - drone_state.pos_x;
+          double dy = current_setpoint.pos_y - drone_state.pos_y;
+          double dz = current_setpoint.pos_z - drone_state.pos_z;
+
+          vel_cmd.velocity.x =
+              x_pid->getControl(-cyaw * dx + syaw * dy, error_time);
+          vel_cmd.velocity.y =
+              y_pid->getControl(-syaw * dx - cyaw * dy, error_time);
+          vel_cmd.velocity.z = z_pid->getControl(dz, error_time);
+          vel_cmd.yaw_rate =
+              o_pid->getControl(setpoint.q_yaw - current_yaw, error_time);
+
           vel_cmd.header.stamp = ros::Time::now();
           vel_control_pub.publish(vel_cmd);
         }
       } else {
         // Send zero velocity commands so that it can be switched to Offboard
         vel_cmd.header.stamp = ros::Time::now();
+        vel_cmd.velocity.x = 0.0;
+        vel_cmd.velocity.y = 0.0;
+        vel_cmd.velocity.z = 0.0;
+        vel_cmd.yaw_rate = 0.0;
         vel_control_pub.publish(vel_cmd);
       }
     }
