@@ -26,6 +26,8 @@ class StateMachineNode():
         rp.loginfo('NMPC is up')
 
         #Define variables
+        self.Sensor_Mag = 17                                        #Changes PIN numbers if connected to diff GPIOs
+        self.Drone_Mag = 4                                          #Changes PIN numbers if connected to diff GPIOs
         self.traj = Trajectory()
         self.Drone_position = [0 , 0, 0]
         self.Drone_distrubance = [0, 0, 0]
@@ -80,7 +82,7 @@ class StateMachineNode():
         rp.spin()
 
     def rcCallback(self, msg):
-        self.mission_bttn = msg.channels['9#']     #Assign a button
+        self.mission_bttn = msg.channels['9#']     #Assign a button on RC to set either Deploy or Retrive Mission
         
 
     def stateCallback(self, msg):
@@ -146,7 +148,7 @@ class StateMachineNode():
 
         time.sleep(5)
 
-        if self.mission_bttn == 1494.0: #(Deploy) ##Check 3 way value from the channel after assigning a number
+        if self.mission_bttn == 1494.0:                                    #(Deploy) ##Check 3 way value from the channel after assigning a number
             #Setnew Setpoint        
             setpoint_msg = Setpoint()
             setpoint_msg.position.x = self.set1_x
@@ -166,7 +168,7 @@ class StateMachineNode():
 
             if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
                 if (Drone_distrubance[2] < self.Dist_1):  #< since its a -ve number (-D_z)
-                    Mag.engage(Sensor_Mag)
+                    Mag.Sn_Magengage(self.Sensor_Mag)
                     rp.loginfo('Sensor_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                     #Setnew Setpoint
@@ -193,7 +195,7 @@ class StateMachineNode():
                             self.sens_x = self.Drone_position[0]
                             self.sens_y = self.Drone_position[1]
                             self.sens_z = self.Drone_position[2]
-                            Mag.disengage(Drone_Mag)
+                            Mag.dr_Magdisengage(self.Drone_Mag)
                             rp.loginfo('Drone_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
                             #Setnew Setpoint to return Home
                             # Prepare setpoint message and publish it
@@ -253,7 +255,7 @@ class StateMachineNode():
 
 
 ##************************************************************
-        elif self.mission_bttn == 2006:   #(Retrive)          #Check the 3way value from the channel
+        elif self.mission_bttn == 2006:                                             #(Retrive)          #Check the 3way value from the channel
 
             #Setnew Setpoint        
             setpoint_msg = Setpoint()
@@ -274,7 +276,7 @@ class StateMachineNode():
 
             if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
                 if (Drone_distrubance[2] < self.Dist_3):                    
-                    Mag.engage(Drone_Mag)
+                    Mag.dr_Magengage(self.Drone_Mag)
                     rp.loginfo('Drone_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                     #Setnew Setpoint
@@ -297,7 +299,7 @@ class StateMachineNode():
 
                     if (check[0] < 0.02) & (check[1] < 0.02) & (check[2] < 0.02):
                         if (Drone_distrubance[2] > self.Dist_4):
-                            Mag.disengage(Sensor_Mag)
+                            Mag.Sn_Magdisengage(self.Sensor_Mag)
                             rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
                             #Setnew Setpoint to return Home
                             # Prepare setpoint message and publish it
