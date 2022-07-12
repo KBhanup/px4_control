@@ -404,7 +404,7 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
           att_control_pub.publish(att_cmd);
         } else {
           ROS_ERROR("NMPC failed to return command. Using Backup Velocity PID");
-          trajectory_setpoint setpoint = getCurrentSetpoint();
+          trajectory_setpoint current_setpoint = nmpc_controller->getCurrentSetpoint();
           double error_time = ros::Time::now().toSec();
 
           double syaw = sin(current_yaw);
@@ -419,7 +419,7 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
               y_pid->getControl(-syaw * dx - cyaw * dy, error_time);
           vel_cmd.velocity.z = z_pid->getControl(dz, error_time);
           vel_cmd.yaw_rate =
-              o_pid->getControl(setpoint.q_yaw - current_yaw, error_time);
+              o_pid->getControl(current_setpoint.q_yaw - current_yaw, error_time);
 
           vel_cmd.header.stamp = ros::Time::now();
           vel_control_pub.publish(vel_cmd);
