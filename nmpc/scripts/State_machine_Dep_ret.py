@@ -26,7 +26,8 @@ class StateMachineNode():
         rp.loginfo('NMPC is up')
 
         #Define variables
-        self.Sensor_Mag = 17                                        #Changes PIN numbers if connected to diff GPIOs
+        self.Sensor_MagON = 14                                        #Changes PIN numbers if connected to diff GPIOs
+        self.Sensor_MagOFF = 15        
         self.Drone_Mag = 4                                          #Changes PIN numbers if connected to diff GPIOs
         self.traj = Trajectory()
         self.Drone_position = [0 , 0, 0]
@@ -168,7 +169,7 @@ class StateMachineNode():
 
             if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
                 if (Drone_distrubance[2] < self.Dist_1):  #< since its a -ve number (-D_z)
-                    Mag.Sn_Magengage(self.Sensor_Mag)
+                    Mag.Sn_Magengage(self.Sensor_MagON)
                     rp.loginfo('Sensor_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                     #Setnew Setpoint
@@ -299,7 +300,7 @@ class StateMachineNode():
 
                     if (check[0] < 0.02) & (check[1] < 0.02) & (check[2] < 0.02):
                         if (Drone_distrubance[2] > self.Dist_4):
-                            Mag.Sn_Magdisengage(self.Sensor_Mag)
+                            Mag.Sn_Magdisengage(self.Sensor_MagOFF)
                             rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
                             #Setnew Setpoint to return Home
                             # Prepare setpoint message and publish it

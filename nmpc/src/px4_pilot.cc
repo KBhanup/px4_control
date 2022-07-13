@@ -226,7 +226,7 @@ void PX4Pilot::trajectoryCallback(const px4_control_msgs::Trajectory &msg) {
 }
 
 void PX4Pilot::missionStateCallback(const std_msgs::Bool::ConstPtr &msg) {
-  in_contact = msg.data;
+  in_contact = msg->data;
 }
 
 bool PX4Pilot::enableControllerServCallback(std_srvs::SetBool::Request &req,
