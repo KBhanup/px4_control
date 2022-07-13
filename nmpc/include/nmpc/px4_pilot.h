@@ -11,6 +11,7 @@
 #include "ros/ros.h"
 
 // ROS messages
+#include <std_msgs/Bool.h>
 #include <mavros_msgs/RCIn.h>
 #include <mavros_msgs/State.h>
 #include <std_srvs/SetBool.h>
@@ -40,6 +41,7 @@ class PX4Pilot {
   ros::Subscriber mavros_rc_sub;
   ros::Subscriber drone_state_sub;
   ros::Subscriber trajectory_sub;
+  ros::Subscriber mission_state_sub;
 
   // ROS Publishers
   ros::Publisher att_control_pub;
@@ -57,6 +59,7 @@ class PX4Pilot {
   void mavrosRCCallback(const mavros_msgs::RCIn::ConstPtr &msg);
   void droneStateCallback(const px4_control_msgs::DroneStateMarker &msg);
   void trajectoryCallback(const px4_control_msgs::Trajectory &msg);
+  void missionStateCallback(const std_msgs::Bool::ConstPtr &msg);
 
   // Service Callbacks
   bool enableControllerServCallback(std_srvs::SetBool::Request &req,
@@ -97,6 +100,7 @@ class PX4Pilot {
   bool controller_enabled;
   bool allow_offboard;
   bool trajectory_loaded;
+  bool in_contact;
   ros::Time last_state_time;
 
   // Backup PIDs
@@ -104,7 +108,6 @@ class PX4Pilot {
   PIDController *y_pid;
   PIDController *z_pid;
   PIDController *o_pid;
-
   std::vector<double> x_pid_k, y_pid_k, z_pid_k, o_pid_k;
 
   model_parameters model_params;

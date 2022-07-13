@@ -60,6 +60,7 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
   controller_enabled = false;
   has_drone_state = false;
   trajectory_loaded = false;
+  in_contact = false;
 
   current_reference_trajectory.clear();
   weights.clear();
@@ -97,6 +98,8 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
       nh.subscribe("/drone_state", 1, &PX4Pilot::droneStateCallback, this);
   trajectory_sub =
       nh.subscribe("/drone_trajectory", 1, &PX4Pilot::trajectoryCallback, this);
+  mission_state_sub =
+      nh.subscribe("/mission_state", 1, &PX4Pilot::missionStateCallback, this);
 
   // Setup Publishers
   att_control_pub = nh.advertise<mavros_msgs::AttitudeTarget>(
@@ -220,6 +223,10 @@ void PX4Pilot::trajectoryCallback(const px4_control_msgs::Trajectory &msg) {
 
   ROS_INFO("Trajectory loaded");
   trajectory_loaded = true;
+}
+
+void PX4Pilot::missionStateCallback(const std_msgs::Bool::ConstPtr &msg) {
+  in_contact = msg.data;
 }
 
 bool PX4Pilot::enableControllerServCallback(std_srvs::SetBool::Request &req,
@@ -398,14 +405,18 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
         std::vector<double> ctrl;
         if (nmpc_controller->getCommands(ctrl)) {
           tf2::Quaternion q;
-          q.setRPY(ctrl[2], ctrl[1], current_yaw);
+          if (in_contact) {
+            q.setRPY(0.0, 0.0, current_yaw);
+          } else {
+            q.setRPY(ctrl[2], ctrl[1], current_yaw);
+          }
           q.normalize();
 
           att_cmd.orientation.x = q[0];
           att_cmd.orientation.y = q[1];
           att_cmd.orientation.z = q[2];
           att_cmd.orientation.w = q[3];
-          att_cmd.body_rate.z = ctrl[0];
+          att_cmd.body_rate.z = in_contact ? 0.0 : ctrl[0];
           att_cmd.thrust = ctrl[3] < 0.1 ? 0.1 : ctrl[3];
 
           att_cmd.header.stamp = ros::Time::now();
@@ -422,14 +433,23 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
           double dy = current_setpoint.pos_y - drone_state.pos_y;
           double dz = current_setpoint.pos_z - drone_state.pos_z;
 
-          vel_cmd.velocity.x = clipValue(
-              x_pid->getControl(cyaw * dx - syaw * dy, error_time), -1.0, 1.0);
-          vel_cmd.velocity.y = clipValue(
-              y_pid->getControl(syaw * dx + cyaw * dy, error_time), -1.0, 1.0);
+          vel_cmd.velocity.x =
+              in_contact ? 0.0
+                         : clipValue(x_pid->getControl(cyaw * dx - syaw * dy,
+                                                       error_time),
+                                     -1.0, 1.0);
+          vel_cmd.velocity.y =
+              in_contact ? 0.0
+                         : clipValue(y_pid->getControl(syaw * dx + cyaw * dy,
+                                                       error_time),
+                                     -1.0, 1.0);
           vel_cmd.velocity.z =
               clipValue(z_pid->getControl(dz, error_time), -1.0, 1.0);
-          vel_cmd.yaw_rate = o_pid->getControl(
-              current_setpoint.q_yaw - current_yaw, error_time);
+          vel_cmd.yaw_rate =
+              in_contact
+                  ? 0.0
+                  : o_pid->getControl(current_setpoint.q_yaw - current_yaw,
+                                      error_time);
 
           vel_cmd.header.stamp = ros::Time::now();
           vel_control_pub.publish(vel_cmd);
