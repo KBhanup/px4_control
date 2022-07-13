@@ -16,14 +16,14 @@ gravity: -9.8066
 # Cost function weights
 # pos_w, vel_x -> [x, y, z]
 # att_w -> [roll, pitch, yaw]
-pos_w: [25, 25, 30]
+pos_w: [25, 25, 21]
 vel_w: [11, 11, 11]
 att_w: [1, 1, 1]
 
 yaw_rate_cmd_w: 100
 pitch_cmd_w: 250
 roll_cmd_w: 250
-thrust_cmd_w: 250
+thrust_cmd_w: 500
 
 # Backup PID gains
 x_pid: [1.21, 0.0, 0.2816]

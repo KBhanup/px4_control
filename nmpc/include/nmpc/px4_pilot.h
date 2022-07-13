@@ -19,15 +19,6 @@
 #include "px4_control_msgs/Setpoint.h"
 #include "px4_control_msgs/Trajectory.h"
 
-template <class num>
-static inline num clipValue(const num &value, const num &l_bound,
-                            const num &u_bound) {
-  num clipped_value = value < l_bound ? l_bound : value;
-  clipped_value = clipped_value > u_bound ? u_bound : clipped_value;
-
-  return clipped_value;
-}
-
 namespace px4_ctrl {
 
 struct rc_switch {

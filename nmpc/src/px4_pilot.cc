@@ -10,6 +10,14 @@
 
 namespace px4_ctrl {
 
+template <class num>
+inline num clipValue(const num &value, const num &l_bound, const num &u_bound) {
+  num clipped_value = value < l_bound ? l_bound : value;
+  clipped_value = clipped_value > u_bound ? u_bound : clipped_value;
+
+  return clipped_value;
+}
+
 inline int loadSingleParameter(const ros::NodeHandle &nh,
                                const std::string &key,
                                const int &default_value) {
@@ -404,7 +412,8 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
           att_control_pub.publish(att_cmd);
         } else {
           ROS_ERROR("NMPC failed to return command. Using Backup Velocity PID");
-          trajectory_setpoint current_setpoint = nmpc_controller->getCurrentSetpoint();
+          trajectory_setpoint current_setpoint =
+              nmpc_controller->getCurrentSetpoint();
           double error_time = ros::Time::now().toSec();
 
           double syaw = sin(current_yaw);
@@ -413,13 +422,14 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
           double dy = current_setpoint.pos_y - drone_state.pos_y;
           double dz = current_setpoint.pos_z - drone_state.pos_z;
 
-          vel_cmd.velocity.x =
-              x_pid->getControl(-cyaw * dx + syaw * dy, error_time);
-          vel_cmd.velocity.y =
-              y_pid->getControl(-syaw * dx - cyaw * dy, error_time);
-          vel_cmd.velocity.z = z_pid->getControl(dz, error_time);
-          vel_cmd.yaw_rate =
-              o_pid->getControl(current_setpoint.q_yaw - current_yaw, error_time);
+          vel_cmd.velocity.x = clipValue(
+              x_pid->getControl(cyaw * dx - syaw * dy, error_time), -1.0, 1.0);
+          vel_cmd.velocity.y = clipValue(
+              y_pid->getControl(syaw * dx + cyaw * dy, error_time), -1.0, 1.0);
+          vel_cmd.velocity.z =
+              clipValue(z_pid->getControl(dz, error_time), -1.0, 1.0);
+          vel_cmd.yaw_rate = o_pid->getControl(
+              current_setpoint.q_yaw - current_yaw, error_time);
 
           vel_cmd.header.stamp = ros::Time::now();
           vel_control_pub.publish(vel_cmd);
