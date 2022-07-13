@@ -82,7 +82,7 @@ class StateMachineNode():
         rp.spin()
 
     def rcCallback(self, msg):
-        self.mission_bttn = msg.channels['9#']     #Assign a button on RC to set either Deploy or Retrive Mission
+        self.mission_bttn = msg.channels[9]     #Assign a button on RC to set either Deploy(Top982) or Retrive(Bottom2006) Mission
         
 
     def stateCallback(self, msg):
@@ -148,7 +148,7 @@ class StateMachineNode():
 
         time.sleep(5)
 
-        if self.mission_bttn == 1494.0:                                    #(Deploy) ##Check 3 way value from the channel after assigning a number
+        if self.mission_bttn == 982.0:                                    #(Deploy) ##Check 3 way value from the channel after assigning a number
             #Setnew Setpoint        
             setpoint_msg = Setpoint()
             setpoint_msg.position.x = self.set1_x
