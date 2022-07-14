@@ -29,41 +29,41 @@ class StateMachineNode():
         self.Sensor_MagON = 14                                        #Changes PIN numbers if connected to diff GPIOs
         self.Sensor_MagOFF = 15        
         self.Drone_Mag = 4                                          #Changes PIN numbers if connected to diff GPIOs
-        self.traj = Trajectory()
+        #self.traj = Trajectory()
         self.Drone_position = [0 , 0, 0]
         self.Drone_distrubance = [0, 0, 0]
         self.mission_bttn = 0
             #Setpoint1
-        self.set1_x = -1.50
-        self.set1_y = 0.07
+        self.set1_x = -1.6
+        self.set1_y = 0.0
         self.set1_z = 1.5
             #Setpoint2
-        self.set2_x = -1.50
-        self.set2_y = 0.07
-        self.set2_z = 2.00
-        self.Dist_1 = -0.5
+        self.set2_x = -1.6
+        self.set2_y = 0.0
+        self.set2_z = 2.11
+        self.Dist_1 = -0.8
             #Setpoint3
-        self.set3_x = -1.50
-        self.set3_y = 0.07
-        self.set3_z = 1.98
-        self.Dist_2 = +0.5
+        self.set3_x = -1.6
+        self.set3_y = 0.0
+        self.set3_z = 1.9
+        self.Dist_2 = +0.8
             #Setpoint4(Home)
-        self.set4_x = -0.8
-        self.set4_y = 0.07
+        self.set4_x = -0.5
+        self.set4_y = 0.0
         self.set4_z = 0.26
             #Setpoint5
-        self.set5_x = -1.50
+        self.set5_x = -1.60
         self.set5_y = 0.07
-        self.set5_z = 1.98
+        self.set5_z = 1.9
         self.Dist_3 = -0.5
             #Setpoint6
-        self.set6_x = -1.50
+        self.set6_x = -1.60
         self.set6_y = 0.07
-        self.set6_z = 1.98
+        self.set6_z = 1.9
         self.Dist_4 = +0.5
             #Setpoint7(Home)
-        self.set7_x = -0.8
-        self.set7_y = 0.07
+        self.set7_x = -0.5
+        self.set7_y = 0.0
         self.set7_z = 0.26
 
 
@@ -92,9 +92,9 @@ class StateMachineNode():
                                         msg.pose.position.y,
                                         msg.pose.position.z])
 
-        self.Drone_distrubance = np.array([msg.distrubances.x,
-                                           msg.distrubances.y,
-                                           msg.distrubances.z])
+        self.Drone_distrubance = np.array([msg.disturbances.x,
+                                           msg.disturbances.y,
+                                           msg.disturbances.z])
 
         Drone_att = np.quaternion(msg.pose.orientation.w,
                                   msg.pose.orientation.x,
@@ -130,225 +130,170 @@ class StateMachineNode():
 
         return [dx, dy, dz]
 
+
+    def setpointfn(self, set_x, set_y ,set_z):
+        #Setnew Setpoint        
+        setpoint_msg = Setpoint()
+        setpoint_msg.position.x = set_x
+        setpoint_msg.position.y = set_y
+        setpoint_msg.position.z = set_z
+        traj = Trajectory()  
+        traj.header.stamp = rp.Time.now()
+        traj.trajectory.append(setpoint_msg)
+        self.trajectory_pub.publish(traj)
+        #return [traj]
+
+        
     
     '''
         State Machine Functions
     '''
     def stateMachine(self, Drone_position, Drone_distrubance):
 
-        #Setnew Setpoint        
-        setpoint_msg = Setpoint()
-        setpoint_msg.position.x = self.set1_x
-        setpoint_msg.position.y = self.set1_y
-        setpoint_msg.position.z = self.set1_z 
-        self.traj.header.stamp = rp.Time.now()
-        self.traj.trajectory.append(setpoint_msg)
-        self.trajectory_pub.publish(self.traj)
+        # #Setnew Setpoint        
+        self.setpointfn(self.set1_x, self.set1_y, self.set1_z)        
         rp.loginfo('Roughly reached Setpoint-1')
 
+        x_des = self.set1_x             #Setpoint-1 
+        y_des = self.set1_y
+        z_des = self.set1_z
 
-        time.sleep(5)
-
-        if self.mission_bttn == 982.0:                                    #(Deploy) ##Check 3 way value from the channel after assigning a number
-            #Setnew Setpoint        
-            setpoint_msg = Setpoint()
-            setpoint_msg.position.x = self.set1_x
-            setpoint_msg.position.y = self.set1_y
-            setpoint_msg.position.z = self.set1_z  
-            self.traj.header.stamp = rp.Time.now()
-            self.traj.trajectory.append(setpoint_msg)
-            self.trajectory_pub.publish(self.traj)
-            rp.loginfo('Reaching Setpoint-2')
-
-            x_des = self.set2_x             #Setpoint-2
-            y_des = self.set2_y
-            z_des = self.set2_z
-
-            check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
+        check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
                                     [x_des, y_des, z_des])
 
-            if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
-                if (Drone_distrubance[2] < self.Dist_1):  #< since its a -ve number (-D_z)
-                    Mag.Sn_Magengage(self.Sensor_MagON)
-                    rp.loginfo('Sensor_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
+        if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
+            time.sleep(5)
 
-                    #Setnew Setpoint
-                    # Prepare setpoint message and publish it
-                    setpoint_msg = Setpoint()
-                    setpoint_msg.position.x = self.set2_x
-                    setpoint_msg.position.y = self.set2_y
-                    setpoint_msg.position.z = self.Drone_position[2] - 0.02   #Pull 2cm lower
-                    self.traj.header.stamp = rp.Time.now()
-                    self.traj.trajectory.append(setpoint_msg)
-                    self.trajectory_pub.publish(self.traj)
-                    rp.loginfo('NewSetpoint-3 sent')
+            if self.mission_bttn == 982.0:                                    #(Deploy) ##Check 3 way value from the channel after assigning a number
+                #Setnew Setpoint-2       
+                self.setpointfn(self.set2_x, self.set2_y, self.set2_z)
+                rp.loginfo('Reaching Setpoint-2')
 
-                    x_des = self.set3_x
-                    y_des = self.set3_y
-                    z_des = self.set3_z
+                x_des = self.set2_x             #Setpoint-2
+                y_des = self.set2_y
+                z_des = self.set2_z
 
-                    check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
-                                    [x_des, y_des, z_des])
+                check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
+                                        [x_des, y_des, z_des])
 
-                    if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
-                        if (Drone_distrubance[2] > self.Dist_2):     #(+D_z)
-                            #Sensor Co-ods
-                            self.sens_x = self.Drone_position[0]
-                            self.sens_y = self.Drone_position[1]
-                            self.sens_z = self.Drone_position[2]
-                            Mag.dr_Magdisengage(self.Drone_Mag)
-                            rp.loginfo('Drone_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
-                            #Setnew Setpoint to return Home
-                            # Prepare setpoint message and publish it
-                            setpoint_msg = Setpoint()
-                            setpoint_msg.position.x = -0.8
-                            setpoint_msg.position.y = 0.07
-                            setpoint_msg.position.z = 0.26
-                            self.traj.header.stamp = rp.Time.now()
-                            self.traj.trajectory.append(setpoint_msg)
-                            self.trajectory_pub.publish(self.traj)
-                            rp.loginfo('NewSetpoint-4 sent Returning Home')
+                if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
+                    if (Drone_distrubance[2] < self.Dist_1):  #< since its a -ve number (-D_z)
+                        Mag.Sn_Magengage(self.Sensor_MagON)
+                        rp.loginfo('Sensor_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
-                        else:
-                            #Setnew Setpoint-2 again
-                            # Prepare setpoint message and publish it
-                            setpoint_msg = Setpoint()
-                            setpoint_msg.position.x = self.set2_x
-                            setpoint_msg.position.y = self.set2_y
-                            setpoint_msg.position.z = self.set2_z
-                            self.traj.header.stamp = rp.Time.now()
-                            self.traj.trajectory.append(setpoint_msg)
-                            self.trajectory_pub.publish(self.traj)
-                            rp.loginfo('Retrying Setpoint2')
-                            
+                        #Setnew Setpoint-3                                              
+                        #setpoint_msg.position.z = self.Drone_position[2] - 0.02   #Pull 2cm lower
+                        self.setpointfn(self.set3_x, self.set3_y, self.set3_z)
+                        rp.loginfo('NewSetpoint-3 sent')
+
+                        x_des = self.set3_x
+                        y_des = self.set3_y
+                        z_des = self.set3_z
+
+                        check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
+                                        [x_des, y_des, z_des])
+
+                        if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
+                            if (Drone_distrubance[2] > self.Dist_2):     #(+D_z)
+                                #Sensor Co-ods
+                                self.sens_x = self.Drone_position[0]
+                                self.sens_y = self.Drone_position[1]
+                                self.sens_z = self.Drone_position[2]
+                                Mag.dr_Magdisengage(self.Drone_Mag)
+                                rp.loginfo('Drone_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
+                                #Setnew Setpoint to return Home Setpoint-4
+                                self.setpointfn(self.set4_x, self.set4_y, self.set4_z)
+                                rp.loginfo('NewSetpoint-4 sent Returning Home')
+
+                            else:
+                                #Setnew Setpoint-2 again                                
+                                self.setpointfn(self.set2_x, self.set2_y, self.set2_z)
+                                rp.loginfo('Retrying Setpoint2')
+                                
+
+                        else: 
+                            #Realign to the Setpoint-3
+                            #Setnew Setpoint
+                            self.setpointfn(self.set3_x, self.set3_y, self.set3_z)
+                            rp.loginfo('Realigning to Setpoint-3 ')
+                        
 
                     else: 
-                        #Realign to the Setpoint-3
-                        #Setnew Setpoint
-                        # Prepare setpoint message and publish it
-                        setpoint_msg = Setpoint()
-                        setpoint_msg.position.x = self.set2_x
-                        setpoint_msg.position.y = self.set2_y
-                        setpoint_msg.position.z = self.Drone_position[2] - 0.02   #(Pull 2cm lower)
-                        self.traj.header.stamp = rp.Time.now()
-                        self.traj.trajectory.append(setpoint_msg)
-                        self.trajectory_pub.publish(self.traj)
-                        rp.loginfo('Realigning to Setpoint-3 ')
-                    
-
+                        #Realign to the Setpoint-2
+                        rp.loginfo("Still Trying to reach Setpoint-2")
+                        
                 else: 
                     #Realign to the Setpoint-2
-                    rp.loginfo("Still Trying to reach Setpoint-2")
-                    return[]
-            else: 
-                #Realign to the Setpoint-2
-                rp.loginfo("Realign to Setpoint-2")
-                # Prepare setpoint message and publish it
-                setpoint_msg = Setpoint()
-                setpoint_msg.position.x = self.set2_x
-                setpoint_msg.position.y = self.set2_y
-                setpoint_msg.position.z = self.set2_z
-                self.traj.header.stamp = rp.Time.now()
-                self.traj.trajectory.append(setpoint_msg)
-                self.trajectory_pub.publish(self.traj)
-                rp.loginfo('Retrying Setpoint2')
+                    rp.loginfo("Realign to Setpoint-2")
+                    self.setpointfn(self.set2_x, self.set2_y, self.set2_z)
+                    rp.loginfo('Retrying Setpoint2')
 
 
 
-##************************************************************
-        elif self.mission_bttn == 2006:                                             #(Retrive)          #Check the 3way value from the channel
+    ##************************************************************
+            elif self.mission_bttn == 2006:                                             #(Retrive)          #Check the 3way value from the channel
 
-            #Setnew Setpoint        
-            setpoint_msg = Setpoint()
-            setpoint_msg.position.x = self.set5_x
-            setpoint_msg.position.y = self.set5_y
-            setpoint_msg.position.z = self.set5_z 
-            self.traj.header.stamp = rp.Time.now()
-            self.traj.trajectory.append(setpoint_msg)
-            self.trajectory_pub.publish(self.traj)
-            rp.loginfo('Reaching Setpoint-5')
-                                 
-            x_des = self.set5_x             #Setpoint-5
-            y_des = self.set5_y
-            z_des = self.set5_z      #/self.sens_z
+                #Setnew Setpoint-5     
+                self.setpointfn(self.set5_x, self.set5_y, self.set5_z)
+                rp.loginfo('Reaching Setpoint-5')
+                                    
+                x_des = self.set5_x             #Setpoint-5
+                y_des = self.set5_y
+                z_des = self.set5_z      #/self.sens_z
 
-            check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
-                                    [x_des, y_des, z_des])
+                check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
+                                        [x_des, y_des, z_des])
 
-            if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
-                if (Drone_distrubance[2] < self.Dist_3):                    
-                    Mag.dr_Magengage(self.Drone_Mag)
-                    rp.loginfo('Drone_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
+                if (check[0] < 0.05) & (check[1] < 0.05) & (check[2] < 0.02):
+                    if (Drone_distrubance[2] < self.Dist_3):                    
+                        Mag.dr_Magengage(self.Drone_Mag)
+                        rp.loginfo('Drone_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
-                    #Setnew Setpoint
-                    # Prepare setpoint message and publish it
-                    setpoint_msg = Setpoint()
-                    setpoint_msg.position.x = self.set5_x
-                    setpoint_msg.position.y = self.set5_y
-                    setpoint_msg.position.z = self.Drone_position[0] - 0.02     #Pulling 2cm down
-                    self.traj.header.stamp = rp.Time.now()
-                    self.traj.trajectory.append(setpoint_msg)
-                    self.trajectory_pub.publish(self.traj)
-                    rp.loginfo('NewSetpoint-6 sent')
+                        #Setnew Setpoint-6
+                        self.setpointfn(self.set6_x, self.set6_y, self.set6_z)
+                        rp.loginfo('NewSetpoint-6 sent')
 
-                    x_des = self.set6_x
-                    y_des = self.set6_y
-                    z_des = self.set6_z
+                        x_des = self.set6_x
+                        y_des = self.set6_y
+                        z_des = self.set6_z
 
-                    check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
-                                    [x_des, y_des, z_des])
+                        check = self.checkState([self.Drone_position[0], self.Drone_position[1], self.Drone_position[2]], 
+                                        [x_des, y_des, z_des])
 
-                    if (check[0] < 0.02) & (check[1] < 0.02) & (check[2] < 0.02):
-                        if (Drone_distrubance[2] > self.Dist_4):
-                            Mag.Sn_Magdisengage(self.Sensor_MagOFF)
-                            rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
-                            #Setnew Setpoint to return Home
-                            # Prepare setpoint message and publish it
-                            setpoint_msg = Setpoint()
-                            setpoint_msg.position.x = -0.8
-                            setpoint_msg.position.y = 0.07
-                            setpoint_msg.position.z = 0.26
-                            self.traj.header.stamp = rp.Time.now()
-                            self.traj.trajectory.append(setpoint_msg)
-                            self.trajectory_pub.publish(self.traj)
-                            rp.loginfo('NewSetpoint-7 sent Returning Home')
+                        if (check[0] < 0.02) & (check[1] < 0.02) & (check[2] < 0.02):
+                            if (Drone_distrubance[2] > self.Dist_4):
+                                Mag.Sn_Magdisengage(self.Sensor_MagOFF)
+                                rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
+                                #Setnew Setpoint to return Home
+                                self.setpointfn(self.set7_x, self.set7_y, self.set7_z)
+                                rp.loginfo('NewSetpoint-7 sent Returning Home')
 
-                        else:                            
-                            #Retry Setpoint-5 again     #Engage Sensor Magnet Properly 
-                            setpoint_msg = Setpoint()
-                            setpoint_msg.position.x = self.set5_x
-                            setpoint_msg.position.y = self.set5_y
-                            setpoint_msg.position.z = self.set5_z
-                            self.traj.header.stamp = rp.Time.now()
-                            self.traj.trajectory.append(setpoint_msg)
-                            self.trajectory_pub.publish(self.traj)
-                            rp.loginfo('Retrying Setpoint5')
+                            else:                            
+                                #Retry Setpoint-5 again     #Engage Sensor Magnet Properly 
+                                self.setpointfn(self.set5_x, self.set5_y, self.set5_z)
+                                rp.loginfo('Retrying Setpoint5')
 
+                        else: 
+                            #Realign to the Setpoint-6                        
+                            self.setpointfn(self.set6_x, self.set6_y, self.set6_z)
+                            rp.loginfo('Realigning to Setpoint-6 ')
                     else: 
-                        #Realign to the Setpoint-6                        
-                        setpoint_msg = Setpoint()
-                        setpoint_msg.position.x = self.set6_x
-                        setpoint_msg.position.y = self.set6_y
-                        setpoint_msg.position.z = self.Drone_position[2] - 0.02   #(Pull 2cm lower)
-                        self.traj.header.stamp = rp.Time.now()
-                        self.traj.trajectory.append(setpoint_msg)
-                        self.trajectory_pub.publish(self.traj)
-                        rp.loginfo('Realigning to Setpoint-6 ')
+                        #Realign to the Setpoint-5
+                        rp.loginfo("Still Trying to reach Setpoint-5")
+                        return[0]
                 else: 
                     #Realign to the Setpoint-5
-                    rp.loginfo("Still Trying to reach Setpoint-5")
-                    return[0]
-            else: 
-                #Realign to the Setpoint-5
-                setpoint_msg = Setpoint()
-                setpoint_msg.position.x = self.set5_x
-                setpoint_msg.position.y = self.set5_y
-                setpoint_msg.position.z = self.set5_z
-                self.traj.header.stamp = rp.Time.now()
-                self.traj.trajectory.append(setpoint_msg)
-                self.trajectory_pub.publish(self.traj)
-                rp.loginfo('Retrying Setpoint5')
+                    self.setpointfn(self.set5_x, self.set5_y, self.set5_z)
+                    rp.loginfo('Retrying Setpoint5')
 ##**********************
+        else:
+            #Realign to the Setpoint-1
+            self.setpointfn(self.set1_x, self.set1_y, self.set1_z)
+            rp.loginfo('Re-align to Setpoint-1')
+
+
+
+
 
     def send_mission(self,):
         rp.loginfo('Mission Started')
