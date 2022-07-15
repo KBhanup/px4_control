@@ -123,7 +123,7 @@ class StateMachineNode():
     #                                           setpoint_msg.orientation.y,
     #                                           setpoint_msg.orientation.z,])
     
-    def checkState(self, current_p, desired_p):
+    def checkState(self,):
         dx = abs(current_p[0] - desired_p[0])
         dy = abs(current_p[1] - desired_p[1])
         dz = abs(current_p[2] - desired_p[2])
@@ -231,7 +231,7 @@ class StateMachineNode():
 
 
     ##************************************************************
-            elif self.mission_bttn == 2006:                                             #(Retrive)          #Check the 3way value from the channel
+            elif self.mission_bttn == 2006.0:                                             #(Retrive)          #Check the 3way value from the channel
 
                 #Setnew Setpoint-5     
                 self.setpointfn(self.set5_x, self.set5_y, self.set5_z)
