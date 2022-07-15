@@ -129,7 +129,7 @@ class StateMachineNode():
                     rp.loginfo('Drone_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                 if(self.mission_step == 3):
-                    Mag.Sn_Magdisengage(self.Sensor_MagON)
+                    Mag.Sn_Magdisengage(self.Sensor_MagOFF)
                     rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                 self.mission_step += 1
