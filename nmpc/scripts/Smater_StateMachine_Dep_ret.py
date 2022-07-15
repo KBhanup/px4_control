@@ -21,19 +21,19 @@ class StateMachineNode():
         self.rate = rate
 
         # Define variables
+        self.Sensor_MagON = Mag(14)
+        self.Sensor_MagOFF =Mag(15)
+        self.Drone_Mag =Mag(4)
         self.setpoint_send = False
         self.mission_step=0                                 #status of mission
         
-        self.mission_points = [[-1.6, 0.0, 1.5, None],      #desired Setpoints
-                               [- 1.6, 0.0, 2.11, -0.9],
-                               [- 1.6, 0.0, 1.90, +0.9],
-                               [- 0.5, 0.0, 0.26, None],
+        self.mission_points = [[-1.6, 0.0, 1.5, 0.02, None],      #desired Setpoints
+                               [- 1.6, 0.0, 2.11, 0.2, -0.7],
+                               [- 1.6, 0.0, 1.90, 0.2,+0.7],
+                               [- 0.5, 0.0, 0.26, 0.02, None],
                                ]
 
-        self.Sensor_MagON = 14  # Changes PIN numbers if connected to diff GPIOs
-        self.Sensor_MagOFF = 15
-        self.Drone_Mag = 4  # Changes PIN numbers if connected to diff GPIOs
-
+        
         self.Drone_position = [0, 0, 0]
         self.Drone_disturbance = [0, 0, 0]
         self.mission_bttn = 0
@@ -71,11 +71,12 @@ class StateMachineNode():
         dx = abs(self.Drone_position[0] - (self.mission_points[self.mission_step][0]))
         dy = abs(self.Drone_position[1] - (self.mission_points[self.mission_step][1]))
         dz = abs(self.Drone_position[2] - (self.mission_points[self.mission_step][2]))
-        dist_z = 2.0
-        if (self.mission_points[self.mission_step][3]) is not None:
-            dist_z = abs((self.mission_points[self.mission_step][3]) + self.Drone_disturbance[2])
 
-        if (dx < 0.05) & (dy < 0.05) & (dz < 0.02) & (dist_z > 1.8):        #1.7 when estDz=0.8
+        dist_z = 2.0
+        if (self.mission_points[self.mission_step][4]) is not None:
+            dist_z = abs((self.mission_points[self.mission_step][4]) + self.Drone_disturbance[2])
+
+        if (dx < 0.05) & (dy < 0.05) & (dz < self.mission_points[self.mission_step][3]) & (dist_z > 1.4):        #1.7 when estDz=0.8
             return True
         else: 
             return False
@@ -104,11 +105,11 @@ class StateMachineNode():
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
                 if(self.mission_step == 1):
-                    Mag.Sn_Magengage(self.Sensor_MagON)
+                    self.Sensor_MagON.Sn_Magengage()
                     rp.loginfo('Sensor_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                 if(self.mission_step == 2):
-                    Mag.dr_Magdisengage(self.Drone_Mag)
+                    self.Drone_Mag.dr_Magdisengage()
                     rp.loginfo('Drone_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                 self.mission_step += 1
@@ -125,11 +126,11 @@ class StateMachineNode():
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
                 if(self.mission_step == 1):
-                    Mag.dr_Magengage(self.Drone_Mag)                    
+                    self.Drone_Mag.dr_Magengage()                    
                     rp.loginfo('Drone_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                 if(self.mission_step == 2):
-                    Mag.Sn_Magdisengage(self.Sensor_MagOFF)
+                    self.Sensor_MagOFF.Sn_Magdisengage()
                     rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                 self.mission_step += 1
