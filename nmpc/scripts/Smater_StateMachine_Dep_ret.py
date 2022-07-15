@@ -100,7 +100,7 @@ class StateMachineNode():
             self.setpoint_send = True
 
         if self.mission_bttn == 2006.0:                     #Deploy Button(down)
-            if self.checkState:
+            if self.checkState():
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
                 if(self.mission_step == 1):
@@ -121,7 +121,7 @@ class StateMachineNode():
 
 
         elif self.mission_bttn == 982.0:                    #Retrive Button(Top)
-            if self.checkState:
+            if self.checkState():
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
                 if(self.mission_step == 1):
