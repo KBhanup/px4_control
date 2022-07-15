@@ -25,8 +25,8 @@ class StateMachineNode():
         self.mission_step=0                                 #status of mission
         
         self.mission_points = [[-1.6, 0.0, 1.5, None],      #desired Setpoints
-                               [- 1.6, 0.0, 2.11, -0.8],
-                               [- 1.6, 0.0, 1.90, +0.8],
+                               [- 1.6, 0.0, 2.11, -0.9],
+                               [- 1.6, 0.0, 1.90, +0.9],
                                [- 0.5, 0.0, 0.26, None],
                                ]
 
@@ -71,11 +71,11 @@ class StateMachineNode():
         dx = abs(self.Drone_position[0] - (self.mission_points[self.mission_step][0]))
         dy = abs(self.Drone_position[1] - (self.mission_points[self.mission_step][1]))
         dz = abs(self.Drone_position[2] - (self.mission_points[self.mission_step][2]))
-        dist_z = 0.0
+        dist_z = 2.0
         if (self.mission_points[self.mission_step][3]) is not None:
             dist_z = abs((self.mission_points[self.mission_step][3]) + self.Drone_disturbance[2])
 
-        if (dx < 0.05) & (dy < 0.05) & (dz < 0.02) & (dist_z > 1.7):        #1.7 when estDz=0.8
+        if (dx < 0.05) & (dy < 0.05) & (dz < 0.02) & (dist_z > 1.8):        #1.7 when estDz=0.8
             return True
         else: 
             return False
@@ -103,11 +103,11 @@ class StateMachineNode():
             if self.checkState:
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
-                if(self.mission_step == 2):
+                if(self.mission_step == 1):
                     Mag.Sn_Magengage(self.Sensor_MagON)
                     rp.loginfo('Sensor_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
-                if(self.mission_step == 3):
+                if(self.mission_step == 2):
                     Mag.dr_Magdisengage(self.Drone_Mag)
                     rp.loginfo('Drone_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
@@ -115,7 +115,7 @@ class StateMachineNode():
                 self.setpoint_send = False
 
 
-                if(self.mission_step == 4):
+                if(self.mission_step == 3):
                     rp.loginfo('Deploy_Mission Acomplished!!')
                     self.mission_step =0
 
@@ -124,11 +124,11 @@ class StateMachineNode():
             if self.checkState:
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
-                if(self.mission_step == 2):
+                if(self.mission_step == 1):
                     Mag.dr_Magengage(self.Drone_Mag)                    
                     rp.loginfo('Drone_Magnet engaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
-                if(self.mission_step == 3):
+                if(self.mission_step == 2):
                     Mag.Sn_Magdisengage(self.Sensor_MagOFF)
                     rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f', self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
@@ -136,7 +136,7 @@ class StateMachineNode():
                 self.setpoint_send = False
 
 
-                if(self.mission_step == 4):
+                if(self.mission_step == 3):
                     rp.loginfo('Retrive_Mission Acomplished!!')
                     self.mission_step =0
 
