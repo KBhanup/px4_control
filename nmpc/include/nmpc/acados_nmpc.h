@@ -20,6 +20,7 @@ struct trajectory_setpoint {
   double q_roll;
   double q_pitch;
   double q_yaw;
+  double q_yaw_rate;
 };
 
 struct model_parameters {
@@ -27,6 +28,9 @@ struct model_parameters {
   double k_pitch;
   double t_roll;
   double k_roll;
+  double t_yaw_rate;
+  double k_yaw_rate;
+  double yaw_rate;
   double damp_x;
   double damp_y;
   double damp_z;

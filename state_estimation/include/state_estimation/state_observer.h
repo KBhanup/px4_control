@@ -122,6 +122,8 @@ class StateObserver {
   Eigen::Matrix<double, marker_size, marker_size> R_marker;
   Eigen::Matrix<double, error_state_size, 1> error_state;
 
+  Eigen::Vector3d angular_rates;
+
   // input = [yaw_rate, pitch, roll, thrust]T
   Eigen::Vector4d past_cmd, latest_cmd;
   ros::Time latest_cmd_time;

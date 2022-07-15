@@ -54,32 +54,27 @@ bool AcadosNMPC::initializeController(const model_parameters &model_params) {
 
   // Initial conditions
   int idxbx0[DRONE_W_DISTURBANCES_NBX0];
-  idxbx0[0] = 0;
-  idxbx0[1] = 1;
-  idxbx0[2] = 2;
-  idxbx0[3] = 3;
-  idxbx0[4] = 4;
-  idxbx0[5] = 5;
-  idxbx0[6] = 6;
-  idxbx0[7] = 7;
-  idxbx0[8] = 8;
+  for (int i = 0; i < DRONE_W_DISTURBANCES_NBX0; i++) idxbx0[i] = i;
+
   ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbx",
                                 idxbx0);
 
   // Set parameters
   acados_model_parameters = new double[DRONE_W_DISTURBANCES_NP];
-  acados_model_parameters[0] = model_params.t_roll;     // Roll time constant
-  acados_model_parameters[1] = model_params.k_roll;     // Roll gain
-  acados_model_parameters[2] = model_params.t_pitch;    // Pitch time constant
-  acados_model_parameters[3] = model_params.k_pitch;    // Pitch gain
-  acados_model_parameters[4] = model_params.damp_x;     // Damping x
-  acados_model_parameters[5] = model_params.damp_y;     // Damping y
-  acados_model_parameters[6] = model_params.damp_z;     // Damping z
-  acados_model_parameters[7] = 0.0;                     // Disturbance force x
-  acados_model_parameters[8] = 0.0;                     // Disturbance force y
-  acados_model_parameters[9] = 0.0;                     // Disturbance force z
-  acados_model_parameters[10] = model_params.k_thrust;  // Thrust coefficients
-  acados_model_parameters[11] = model_params.gravity;   // Gravity
+  acados_model_parameters[0] = model_params.t_roll;      // Roll time constant
+  acados_model_parameters[1] = model_params.k_roll;      // Roll gain
+  acados_model_parameters[2] = model_params.t_pitch;     // Pitch time constant
+  acados_model_parameters[3] = model_params.k_pitch;     // Pitch gain
+  acados_model_parameters[4] = model_params.t_yaw_rate;  // Pitch time constant
+  acados_model_parameters[5] = model_params.k_yaw_rate;  // Pitch gain
+  acados_model_parameters[6] = model_params.damp_x;      // Damping x
+  acados_model_parameters[7] = model_params.damp_y;      // Damping y
+  acados_model_parameters[8] = model_params.damp_z;      // Damping z
+  acados_model_parameters[9] = 0.0;                      // Disturbance force x
+  acados_model_parameters[10] = 0.0;                     // Disturbance force y
+  acados_model_parameters[11] = 0.0;                     // Disturbance force z
+  acados_model_parameters[12] = model_params.k_thrust;   // Thrust coefficients
+  acados_model_parameters[13] = model_params.gravity;    // Gravity
 
   hover_thrust = -model_params.gravity / model_params.k_thrust;
 
@@ -106,10 +101,11 @@ bool AcadosNMPC::setWeighingMatrix(const std::vector<double> &weights) {
     W[6 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[6];    // Roll
     W[7 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[7];    // Pitch
     W[8 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[8];    // Yaw
-    W[9 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[9];    // Yaw rate
-    W[10 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[10];  // Pitch cmd
-    W[11 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[11];  // Roll cmd
-    W[12 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[12];  // Thrust
+    W[9 * (DRONE_W_DISTURBANCES_NY + 1)] = 1.0e-9;        // Yaw rate
+    W[10 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[9];   // Yaw rate cmd
+    W[11 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[10];  // Pitch cmd
+    W[12 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[11];  // Roll cmd
+    W[13 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[12];  // Thrust cmd
 
     for (int i = 0; i < DRONE_W_DISTURBANCES_N; i++)
       ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "W", W);
@@ -136,6 +132,7 @@ bool AcadosNMPC::setWeighingMatrix(const std::vector<double> &weights) {
         10.0 * DRONE_W_DISTURBANCES_N * weights[7];
     WN[8 * (DRONE_W_DISTURBANCES_NX + 1)] =
         10.0 * DRONE_W_DISTURBANCES_N * weights[8];
+    WN[9 * (DRONE_W_DISTURBANCES_NX + 1)] = 1.0e-9;
 
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, DRONE_W_DISTURBANCES_N,
                            "W", WN);
@@ -302,9 +299,10 @@ void AcadosNMPC::updateReference() {
     y_ref[7] = current_reference_trajectory[ref_index].q_pitch;  // Pitch
     y_ref[8] = current_reference_trajectory[ref_index].q_yaw;    // Yaw
     y_ref[9] = 0.0;                                              // Yaw rate
-    y_ref[10] = 0.0;                                             // Pitch cmd
-    y_ref[11] = 0.0;                                             // Roll cmd
-    y_ref[12] = hover_thrust;                                    // Thrust
+    y_ref[10] = 0.0;                                             // Yaw rate cmd
+    y_ref[11] = 0.0;                                             // Pitch cmd
+    y_ref[12] = 0.0;                                             // Roll cmd
+    y_ref[13] = hover_thrust;                                    // Thrust
 
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, acados_index, "yref",
                            y_ref);
@@ -324,6 +322,7 @@ void AcadosNMPC::updateReference() {
   y_ref_e[6] = current_reference_trajectory[ref_index].q_roll;   // Roll
   y_ref_e[7] = current_reference_trajectory[ref_index].q_pitch;  // Pitch
   y_ref_e[8] = current_reference_trajectory[ref_index].q_yaw;    // Yaw
+  y_ref_e[9] = 0.0;                                              // Yaw rate
 
   ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, DRONE_W_DISTURBANCES_N,
                          "yref", y_ref_e);
@@ -341,6 +340,7 @@ void AcadosNMPC::updateInitialConditions(
   x_init[6] = state_init.q_roll;
   x_init[7] = state_init.q_pitch;
   x_init[8] = state_init.q_yaw;
+  x_init[9] = state_init.q_yaw_rate;
 
   // Set the initial conditions by setting the lower and upper bounds to the
   // initial state values
@@ -360,9 +360,9 @@ void AcadosNMPC::updateInitialConditions(
 
 void AcadosNMPC::updateDisturbances(const double &fdis_x, const double &fdis_y,
                                     const double &fdis_z) {
-  acados_model_parameters[7] = fdis_x;
-  acados_model_parameters[8] = fdis_y;
-  acados_model_parameters[9] = fdis_z;
+  acados_model_parameters[8] = fdis_x;
+  acados_model_parameters[9] = fdis_y;
+  acados_model_parameters[10] = fdis_z;
 
   for (int i = 0; i <= DRONE_W_DISTURBANCES_N; i++)
     drone_w_disturbances_acados_update_params(acados_ocp_capsule, i,

@@ -173,9 +173,10 @@ void PX4Pilot::droneStateCallback(
   drone_state.pos_x = msg.pose.position.x;
   drone_state.pos_y = msg.pose.position.y;
   drone_state.pos_z = msg.pose.position.z;
-  drone_state.vel_x = msg.velocity.x;
-  drone_state.vel_y = msg.velocity.y;
-  drone_state.vel_z = msg.velocity.z;
+  drone_state.vel_x = msg.twist.linear.x;
+  drone_state.vel_y = msg.twist.linear.y;
+  drone_state.vel_z = msg.twist.linear.z;
+  drone_state.q_yaw_rate = msg.twist.angular.z;
 
   tf::Quaternion q;
   tf::quaternionMsgToTF(msg.pose.orientation, q);
@@ -260,6 +261,8 @@ void PX4Pilot::loadParameters() {
   model_params.k_pitch = loadSingleParameter(nh_pvt, "k_pitch", 1.0);
   model_params.t_roll = loadSingleParameter(nh_pvt, "t_roll", 1.0);
   model_params.k_roll = loadSingleParameter(nh_pvt, "k_roll", 1.0);
+  model_params.t_yaw_rate = loadSingleParameter(nh_pvt, "t_yaw_rate", 1.0);
+  model_params.k_yaw_rate = loadSingleParameter(nh_pvt, "k_yaw_rate", 1.0);
   model_params.k_thrust = loadSingleParameter(nh_pvt, "k_thrust", 1.0);
   model_params.gravity = loadSingleParameter(nh_pvt, "gravity", -9.8066);
 

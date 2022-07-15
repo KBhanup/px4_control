@@ -312,6 +312,11 @@ void StateObserver::poseCallback(const nav_msgs::Odometry &msg) {
 // Odometry Callback
 void StateObserver::odomCallback(const nav_msgs::Odometry &msg) {
   if (is_initialized) {
+    // Update angular rates
+    angular_rates.x() = msg.twist.twist.angular.x;
+    angular_rates.y() = msg.twist.twist.angular.y;
+    angular_rates.z() = msg.twist.twist.angular.z;
+
     // Prepare measurement
     Eigen::Matrix<double, odom_size, 1> y_odom;
     y_odom << msg.twist.twist.linear.x, msg.twist.twist.linear.y,
@@ -712,16 +717,21 @@ void StateObserver::publishState(ros::Time time) {
   msg.pose.position.y = state.position(1);
   msg.pose.position.z = state.position(2);
 
-  // Velocity
-  msg.velocity.x = state.velocity(0);
-  msg.velocity.y = state.velocity(1);
-  msg.velocity.z = state.velocity(2);
-
   // Attitude
   msg.pose.orientation.w = state.attitude.w();
   msg.pose.orientation.x = state.attitude.x();
   msg.pose.orientation.y = state.attitude.y();
   msg.pose.orientation.z = state.attitude.z();
+
+  // Linear velocity
+  msg.twist.linear.x = state.velocity(0);
+  msg.twist.linear.y = state.velocity(1);
+  msg.twist.linear.z = state.velocity(2);
+
+  // Angular rate
+  msg.twist.angular.x = angular_rates.x();
+  msg.twist.angular.y = angular_rates.y();
+  msg.twist.angular.z = angular_rates.z();
 
   // Disturbances
   msg.disturbances.x = state.disturbances(0);

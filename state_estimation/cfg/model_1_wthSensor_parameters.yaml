@@ -3,6 +3,8 @@ t_roll: 0.12824
 k_roll: 0.90881
 t_pitch: 0.12494
 k_pitch: 0.88609
+t_yaw_rate: 0.3133
+k_yaw_rate: 0.9317
 
 # Damping coefficients
 damping_coef: [-0.29342, -0.29342, -0.13667]
