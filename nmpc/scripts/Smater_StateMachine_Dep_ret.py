@@ -11,9 +11,9 @@ from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint
 
 class StateMachineNode():
     """
-      Simple state machine that checks the state and when the target is found it
-      sends a setpoint relative to it. It also tracks the target's position and
-      if it changes too much it updates the setpoint
+      Simple state machine that checks the state and when the position and 
+      Distrubances meet the criteria either Deploy or Retrive the sensor
+      based on request.
     """
 
     def __init__(self, rate):
@@ -54,7 +54,7 @@ class StateMachineNode():
         rp.spin()
 
     def rcCallback(self, msg):
-        # Assign a button on RC to set either Deploy(Top982) or Retrive(Bottom2006) Mission
+        # Assign a button on RC to set either Deploy(Down2006) or Retrive(Top982) Mission
         self.mission_bttn = msg.channels[9]
 
     def stateCallback(self, msg):
