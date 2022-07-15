@@ -73,7 +73,7 @@ class StateMachineNode():
         dz = abs(self.Drone_position[2] - (self.mission_points[self.mission_step][2]))
         dist_z = 0.0
         if (self.mission_points[self.mission_step][3]) is not None:
-            dist_z = abs((self.mission_points[self.mission_step][3]) - self.Drone_disturbance[2])
+            dist_z = abs((self.mission_points[self.mission_step][3]) + self.Drone_disturbance[2])
 
         if (dx < 0.05) & (dy < 0.05) & (dz < 0.02) & (dist_z > 1.7):        #1.7 when estDz=0.8
             return True
