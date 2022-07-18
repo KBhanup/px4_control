@@ -7,6 +7,6 @@ Sensor_MagON = Mag(14)
 Sensor_MagOFF =Mag(15)
 Drone_Mag = Mag(4)
 
-Sensor_MagON.dr_Magdisengage()
+Sensor_MagON.Sn_Magengage()
 #Sensor_MagOFF.Sn_Magdisengage()
 #Drone_Mag.dr_Magdisengage()
