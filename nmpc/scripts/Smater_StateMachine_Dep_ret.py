@@ -26,11 +26,11 @@ class StateMachineNode():
         self.Sensor_MagOFF = Mag(15)
         self.Drone_Mag = Mag(4)
         self.SEng_position = [- 1.6, 0.0, 1.99]
-        self.Ddiseng_position = [- 1.6, 0.0, 1.90]
+        self.Ddiseng_position = [-1.573562, -0.007904, 1.975114]
         self.setpoint_send = False
         self.in_mission = False
         self.in_contact = False
-        self.mission_step = 0  # status of Deploymission
+        self.mission_step = 5  # status of Deploymission
         #self.retivemission_step = 0
 
         self.mission_points = [[-1.6, 0.0, 1.5, 0.02, None],  # desired Setpoints for Deploy Mission
@@ -148,7 +148,7 @@ class StateMachineNode():
             self.setpoint_send = True
 
         if self.mission_bttn == 2006.0:  # Deploy Button(down)
-            rp.loginfo('Mission set to Deploy')
+#            rp.loginfo('Mission set to Deploy')
             if self.checkState(self.mission_points):
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
@@ -178,7 +178,7 @@ class StateMachineNode():
                 self.setpoint_send = False
 
         elif self.mission_bttn == 982.0:  # Retrive Button(Top)
-            rp.loginfo('Mission switched to Retrivel')
+#            rp.loginfo('Mission switched to Retrivel')
             if self.checkState(self.retrive_points):
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
