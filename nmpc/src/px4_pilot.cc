@@ -187,12 +187,15 @@ void PX4Pilot::droneStateCallback(
   drone_state.q_roll = r;
 
   disturbances.clear();
-  // disturbances.push_back(0.0);
-  // disturbances.push_back(0.0);
-  // disturbances.push_back(0.0);
-  disturbances.push_back(clipValue(msg.disturbances.x, -0.5, 0.5));
-  disturbances.push_back(clipValue(msg.disturbances.y, -0.5, 0.5));
-  disturbances.push_back(clipValue(msg.disturbances.z, -0.5, 0.5));
+  if (in_contact) {
+    disturbances.push_back(clipValue(msg.disturbances.x, -0.5, 0.5));
+    disturbances.push_back(clipValue(msg.disturbances.y, -0.5, 0.5));
+    disturbances.push_back(clipValue(msg.disturbances.z, -0.5, 0.5));
+  } else {
+    disturbances.push_back(msg.disturbances.x);
+    disturbances.push_back(msg.disturbances.y);
+    disturbances.push_back(msg.disturbances.z);
+  }
 
   last_state_time = msg.header.stamp;
   has_drone_state = !has_drone_state ? true : has_drone_state;
