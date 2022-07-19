@@ -188,9 +188,9 @@ void PX4Pilot::droneStateCallback(
 
   disturbances.clear();
   if (in_contact) {
-    disturbances.push_back(0.0);
-    disturbances.push_back(0.0);
-    disturbances.push_back(0.0);
+    disturbances.push_back(clipValue(msg.disturbances.x, -0.5, 0.5));
+    disturbances.push_back(clipValue(msg.disturbances.y, -0.5, 0.5));
+    disturbances.push_back(clipValue(msg.disturbances.z, -0.5, 0.5));
   } else {
     disturbances.push_back(msg.disturbances.x);
     disturbances.push_back(msg.disturbances.y);
