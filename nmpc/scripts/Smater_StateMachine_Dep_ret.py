@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import rospy as rp
+from std_msgs.msg import Bool
 import numpy as np
 import time
 from Mag_Eng_DisEng_fns import Mag
@@ -24,10 +25,11 @@ class StateMachineNode():
         self.Sensor_MagON = Mag(14)
         self.Sensor_MagOFF = Mag(15)
         self.Drone_Mag = Mag(4)
-        #self.SEng_position = [- 1.6, 0.0, 1.99,]
+        self.SEng_position = [- 1.6, 0.0, 1.99]
         self.Ddiseng_position = [- 1.6, 0.0, 1.90]
         self.setpoint_send = False
         self.in_mission = False
+        self.in_contact = False
         self.mission_step = 0  # status of Deploymission
         #self.retivemission_step = 0
 
@@ -66,7 +68,9 @@ class StateMachineNode():
         # Publishers
         self.trajectory_pub = rp.Publisher(
             '/drone_trajectory', Trajectory, queue_size=1, latch=True)
-
+        self.in_contact_pub = rp.Publisher(
+            '/mission_state', Bool, queue_size=1)
+        # pub to /mission_state  :contact flags
         t = threading.Thread(target=self.send_mission)
         t.start()
 
@@ -144,11 +148,13 @@ class StateMachineNode():
             self.setpoint_send = True
 
         if self.mission_bttn == 2006.0:  # Deploy Button(down)
+            rp.loginfo('Mission set to Deploy')
             if self.checkState(self.mission_points):
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
                 if(self.mission_step == 1):
                     self.Sensor_MagON.Sn_Magengage()
+                    self.in_contact = True                    
                     self.SEng_position[0] = self.Drone_position[0]
                     self.SEng_position[1] = self.Drone_position[1]
                     self.SEng_position[2] = self.Drone_position[2]
@@ -157,9 +163,10 @@ class StateMachineNode():
 
                 elif(self.mission_step == 2):
                     self.Drone_Mag.dr_Magdisengage()
+                    self.in_contact = False                    
                     self.Ddiseng_position[0] = self.Drone_position[0]
                     self.Ddiseng_position[1] = self.Drone_position[1]
-                    self.Ddiseng_position[2] = self.Drone_position[2]
+                    self.Ddiseng_position[2] = self.Drone_position[2]                
                     rp.loginfo('Drone_Magnet Disengaged at %f, %f, %f',
                                self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
@@ -171,16 +178,19 @@ class StateMachineNode():
                 self.setpoint_send = False
 
         elif self.mission_bttn == 982.0:  # Retrive Button(Top)
+            rp.loginfo('Mission switched to Retrivel')
             if self.checkState(self.retrive_points):
                 rp.loginfo('New Setpoint-%d reached', self.mission_step)
 
                 if(self.mission_step == 6):
                     self.Drone_Mag.dr_Magengage()
+                    self.in_contact = True                    
                     rp.loginfo('Drone_Magnet engaged at %f, %f, %f',
                                self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
                 elif(self.mission_step == 7):
                     self.Sensor_MagOFF.Sn_Magdisengage()
+                    self.in_contact = False                    
                     rp.loginfo('Sensor_Magnet Disengaged at %f, %f, %f',
                                self.Drone_position[0], self.Drone_position[1], self.Drone_position[2])
 
@@ -195,6 +205,7 @@ class StateMachineNode():
         rp.loginfo('Mission Started')
         r = rp.Rate(self.rate)
         while not rp.is_shutdown():
+            self.in_contact_pub.publish(self.in_contact)
             if self.in_mission:
                 self.stateMachine()
             r.sleep()
