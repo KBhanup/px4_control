@@ -28,10 +28,11 @@ class StateMachineNode():
         self.sensor_magnet_on = Mag(14)
         self.sensor_magnet_off = Mag(15)
         self.drone_magnet = Mag(4)
+        self.mission_bttn = 0
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, 0.0],
-                                           [0.0, 1.0, 0.0, 0.1],
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.18],
+                                           [0.0, 1.0, 0.0, 0.0],
                                            [0.0, 0.0, 1.0, 0.0],
                                            [0.0, 0.0, 0.0, 1.0]])
 
@@ -50,7 +51,7 @@ class StateMachineNode():
         self.in_mission = False
         self.in_contact = False
         self.mission_step = 0
-        self.z_distances = [-0.5, 0.1, -0.1, -0.5]
+        self.z_distances = [-0.75, -0.15, -0.35, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
         self.mission_setpoints = [[-1.6, 0.0, 1.5,  0.0, 0.05, None],
                                   [-1.6, 0.0, 2.11, 0.0, 0.20, -0.7],
@@ -122,6 +123,13 @@ class StateMachineNode():
                                            msg.marker_pose.orientation.y,
                                            msg.marker_pose.orientation.z).normalized()
 
+                H_world_marker = np.identity(4)
+                H_world_marker[0, 3] = msg.marker_pose.position.x
+                H_world_marker[1, 3] = msg.marker_pose.position.y
+                H_world_marker[2, 3] = msg.marker_pose.position.z
+                H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
+                    marker_att)
+
                 R = quaternion.as_rotation_matrix(marker_att)
                 marker_current_orientation = np.arctan2(R[1, 0], R[0, 0])
 
@@ -156,7 +164,7 @@ class StateMachineNode():
 
         for i in range(len(self.z_distances)):
             H_setpoint = self.H_marker_setpoint
-            H_setpoint[2, 3] = self.z_distances(i)
+            H_setpoint[2, 3] = self.z_distances[i]
 
             # Transform setpoint to world frame
             H_world_setpoint = np.matmul(H_world_marker, H_setpoint)
