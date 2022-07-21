@@ -28,10 +28,11 @@ class StateMachineNode():
         self.sensor_magnet_on = Mag(14)
         self.sensor_magnet_off = Mag(15)
         self.drone_magnet = Mag(4)
+        self.mission_bttn = 0
 
         # Sensor deployment point relative to marker
         self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, 0.0],
-                                           [0.0, 1.0, 0.0, 0.1],
+                                           [0.0, 1.0, 0.0, 0.18],
                                            [0.0, 0.0, 1.0, 0.0],
                                            [0.0, 0.0, 0.0, 1.0]])
 
@@ -156,7 +157,7 @@ class StateMachineNode():
 
         for i in range(len(self.z_distances)):
             H_setpoint = self.H_marker_setpoint
-            H_setpoint[2, 3] = self.z_distances(i)
+            H_setpoint[2, 3] = self.z_distances[i]
 
             # Transform setpoint to world frame
             H_world_setpoint = np.matmul(H_world_marker, H_setpoint)
