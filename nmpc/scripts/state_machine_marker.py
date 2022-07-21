@@ -31,7 +31,7 @@ class StateMachineNode():
 
         # Sensor deployment point relative to marker
         self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, 0.0],
-                                           [0.0, 1.0, 0.0, 0.0],
+                                           [0.0, 1.0, 0.0, 0.1],
                                            [0.0, 0.0, 1.0, 0.0],
                                            [0.0, 0.0, 0.0, 1.0]])
 
@@ -52,10 +52,10 @@ class StateMachineNode():
         self.mission_step = 0
         self.z_distances = [-0.5, 0.1, -0.1, -0.5]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
-        self.mission_setpoints = [[0.0, 0.0, 0.0, 0.0, 0.05, None],
-                                  [0.0, 0.0, 0.0, 0.0, 0.20, -0.7],
-                                  [0.0, 0.0, 0.0, 0.0, 0.20, +0.7],
-                                  [0.0, 0.0, 0.0, 0.0, 0.05, None]]
+        self.mission_setpoints = [[-1.6, 0.0, 1.5,  0.0, 0.05, None],
+                                  [-1.6, 0.0, 2.11, 0.0, 0.20, -0.7],
+                                  [-1.6, 0.0, 1.90, 0.0, 0.20, +0.7],
+                                  [-1.6, 0.0, 1.3,  0.0, 0.05, None]]
 
         # Subscribers
         self.state_sub = rp.Subscriber(
