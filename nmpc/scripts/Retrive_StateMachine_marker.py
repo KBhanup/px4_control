@@ -10,7 +10,7 @@ from Mag_Eng_DisEng_fns import Mag
 
 from std_msgs.msg import Bool
 from mavros_msgs.msg import RCIn
-from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint,deployed_at
+from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint
 
 
 class StateMachineNode():
@@ -20,7 +20,7 @@ class StateMachineNode():
       if it changes too much it updates the setpoints
     """
 
-    def __init__(self, rate):
+    def __init__(self, rate, deployed_x, deployed_y, deployed_z):
         rp.init_node('state_machine_node')
         self.rate = rate
 
@@ -28,12 +28,12 @@ class StateMachineNode():
         self.sensor_magnet_on = Mag(14)
         self.sensor_magnet_off = Mag(15)
         self.drone_magnet = Mag(4)
-        self.mission_bttn = 0
+        # self.mission_bttn = 0
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.18],
-                                           [0.0, 1.0, 0.0, 0.0],
-                                           [0.0, 0.0, 1.0, 0.0],
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, deployed_x],
+                                           [0.0, 1.0, 0.0, deployed_y],
+                                           [0.0, 0.0, 1.0, deployed_z],
                                            [0.0, 0.0, 0.0, 1.0]])
 
         # Marker's pose used for setpoints
@@ -61,16 +61,14 @@ class StateMachineNode():
         # Subscribers
         self.state_sub = rp.Subscriber(
             '/drone_state', DroneStateMarker, self.stateCallback, queue_size=1)
-        self.rc_sub = rp.Subscriber(
-            '/mavros/rc/in', RCIn, self.rcCallback, queue_size=1)
+
 
         # Publishers
         self.trajectory_pub = rp.Publisher(
             '/drone_trajectory', Trajectory, queue_size=1, latch=True)
         self.in_contact_pub = rp.Publisher(
             '/mission_state', Bool, queue_size=1)
-        self.deployed_setpoint_pub = rp.Publisher(
-            '/deployed_setpoint', deployed_at, queue_size=1)
+
 
         t = threading.Thread(target=self.missionControl())
         t.start()
@@ -144,14 +142,6 @@ class StateMachineNode():
 
                     self.calculateMissionSetpoints(H_world_marker)
 
-    def rcCallback(self, msg):
-        # Check RC button that specifies mission type
-        # Deploy: Down - 2006
-        # Retrieve: Top - 982
-        if self.mission_bttn != msg.channels[9]:
-            self.mission_bttn = msg.channels[9]
-            self.in_mission = True
-
     """
        Helper functions
     """
@@ -220,24 +210,7 @@ class StateMachineNode():
                 self.mission_setpoints[self.mission_step][5] + self.disturbances[2]) > 1.4
             return pose_condition and dist_condition
 
-    def deployedPointwrtMarker(self,):
-        self.H_world_deployed = np.identity(4)
-        self.H_world_deployed[0][3] = self.drone_position[0]
-        self.H_world_deployed[1][3] = self.drone_position[1]
-        self.H_world_deployed[2][3] = self.drone_position[2]
-        self.H_world_deployed[0:3, 0:3] = quaternion.as_rotation_matrix(self.drone_att)
 
-        self.H_marker_world = np.linalg.inv(self.H_world_marker)
-
-        # Transform setpoint to Marker's frame
-        H_marker_deployed = np.matmul(self.H_world_deployed, self.H_marker_world)
-
-        deployed_msg = deployed_at()
-        deployed_msg.deployed_setpoint.x = H_marker_deployed[0, 3]
-        deployed_msg.deployed_setpoint.y = H_marker_deployed[1, 3]
-        deployed_msg.deployed_setpoint.z = H_marker_deployed[2, 3]
-
-        self.deployed_setpoint_pub.publish(deployed_msg)
 
     """
        State Machine main function
@@ -254,21 +227,21 @@ class StateMachineNode():
 
             if self.mission_step == 1:
                 self.in_contact = True
-                rp.loginfo('Engaging sensor magnet')
-                self.sensor_magnet_on.Sn_Magengage()
+                rp.loginfo('Engaging drone magnet')
+                self.drone_magnet.dr_Magengage()
+                
                 rp.loginfo('Sensor deployed at: {}, {}, {}'.format(
                     self.drone_position[0], self.drone_position[1], self.drone_position[2]
                 ))
-                #Converting Drone deployed position into markers frame and publishing
-                self.deployedPointwrtMarker()
+                
 
             elif self.mission_step == 2:
-                rp.loginfo('Disengaging drone magnet')
-                self.drone_magnet.dr_Magdisengage()
+                rp.loginfo('Disengaging sensor magnet')
+                self.sensor_magnet_off.Sn_Magdisengage()
                 self.in_contact = False
 
             elif self.mission_step == 3:
-                rp.loginfo('Deploy mission finished')
+                rp.loginfo('Retrive mission finished')
                 self.in_mission = False
 
             self.mission_step += 1
