@@ -265,4 +265,4 @@ class StateMachineNode():
 
 
 if __name__ == '__main__':
-    StateMachineNode(5)
+    StateMachineNode(5, -0.18, 0.0, 0.0)
