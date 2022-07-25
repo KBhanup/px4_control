@@ -32,7 +32,7 @@ class StateMachineNode():
         self.mission_bttn = 0
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.18],
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.14],
                                            [0.0, 1.0, 0.0, 0.0],
                                            [0.0, 0.0, 1.0, 0.0],
                                            [0.0, 0.0, 0.0, 1.0]])
@@ -243,6 +243,12 @@ class StateMachineNode():
         rp.loginfo('Sensor deployed wrt Marker at: {}, {}, {}'.format(
                     H_marker_deployed[0, 3], H_marker_deployed[1, 3], H_marker_deployed[2, 3]
                 ))
+        f = open('deployed_wrtMarker.txt', 'w')
+        f.write('Sensor deployed wrt Marker at: {}, {}, {}'.format(
+                    H_marker_deployed[0, 3], H_marker_deployed[1, 3], H_marker_deployed[2, 3]
+                ))
+        f.close()
+
 
     """
        State Machine main function
