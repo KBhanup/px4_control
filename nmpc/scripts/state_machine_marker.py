@@ -126,11 +126,11 @@ class StateMachineNode():
                                            msg.marker_pose.orientation.y,
                                            msg.marker_pose.orientation.z).normalized()
 
-                H_world_marker = np.identity(4)
-                H_world_marker[0, 3] = msg.marker_pose.position.x
-                H_world_marker[1, 3] = msg.marker_pose.position.y
-                H_world_marker[2, 3] = msg.marker_pose.position.z
-                H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
+                self.H_world_marker = np.identity(4)
+                self.H_world_marker[0, 3] = msg.marker_pose.position.x
+                self.H_world_marker[1, 3] = msg.marker_pose.position.y
+                self.H_world_marker[2, 3] = msg.marker_pose.position.z
+                self.H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
                     marker_att)
 
                 R = quaternion.as_rotation_matrix(marker_att)
@@ -143,7 +143,7 @@ class StateMachineNode():
                     rp.logwarn(
                         'The marker\'s position changed too much. Updating setpoints')
 
-                    self.calculateMissionSetpoints(H_world_marker)
+                    self.calculateMissionSetpoints(self.H_world_marker)
 
     def rcCallback(self, msg):
         # Check RC button that specifies mission type
