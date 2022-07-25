@@ -8,9 +8,10 @@ import threading
 
 from Mag_Eng_DisEng_fns import Mag
 
+from geometry_msgs.msg import Vector3
 from std_msgs.msg import Bool
 from mavros_msgs.msg import RCIn
-from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint,deployed_at
+from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint
 
 
 class StateMachineNode():
@@ -70,7 +71,7 @@ class StateMachineNode():
         self.in_contact_pub = rp.Publisher(
             '/mission_state', Bool, queue_size=1)
         self.deployed_setpoint_pub = rp.Publisher(
-            '/deployed_setpoint', deployed_at, queue_size=1)
+            '/deployed_setpoint', Vector3, queue_size=1, latch=True)
 
         t = threading.Thread(target=self.missionControl())
         t.start()
@@ -197,6 +198,7 @@ class StateMachineNode():
         trajectory_msg.trajectory.append(setpoint_msg)
 
         self.trajectory_pub.publish(trajectory_msg)
+        rp.loginfo('Trajectory setpoint {} published'.format(self.mission_step))
 
     def checkState(self,):
         dx = abs(self.drone_position[0] -
@@ -230,14 +232,17 @@ class StateMachineNode():
         self.H_marker_world = np.linalg.inv(self.H_world_marker)
 
         # Transform setpoint to Marker's frame
-        H_marker_deployed = np.matmul(self.H_world_deployed, self.H_marker_world)
+        H_marker_deployed = np.matmul(self.H_marker_world, self.H_world_deployed)
 
-        deployed_msg = deployed_at()
-        deployed_msg.deployed_setpoint.x = H_marker_deployed[0, 3]
-        deployed_msg.deployed_setpoint.y = H_marker_deployed[1, 3]
-        deployed_msg.deployed_setpoint.z = H_marker_deployed[2, 3]
+        deployed_msg = Vector3()
+        deployed_msg.x = H_marker_deployed[0, 3]
+        deployed_msg.y = H_marker_deployed[1, 3]
+        deployed_msg.z = H_marker_deployed[2, 3]
 
         self.deployed_setpoint_pub.publish(deployed_msg)
+        rp.loginfo('Sensor deployed wrt Marker at: {}, {}, {}'.format(
+                    H_marker_deployed[0, 3], H_marker_deployed[1, 3], H_marker_deployed[2, 3]
+                ))
 
     """
        State Machine main function
@@ -256,7 +261,7 @@ class StateMachineNode():
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
                 self.sensor_magnet_on.Sn_Magengage()
-                rp.loginfo('Sensor deployed at: {}, {}, {}'.format(
+                rp.loginfo('Sensor deployed wrt World at: {}, {}, {}'.format(
                     self.drone_position[0], self.drone_position[1], self.drone_position[2]
                 ))
                 #Converting Drone deployed position into markers frame and publishing
