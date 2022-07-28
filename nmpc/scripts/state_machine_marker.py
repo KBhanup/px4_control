@@ -32,7 +32,7 @@ class StateMachineNode():
         self.mission_bttn = 0
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.14],
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.16],
                                            [0.0, 1.0, 0.0, 0.0],
                                            [0.0, 0.0, 1.0, 0.0],
                                            [0.0, 0.0, 0.0, 1.0]])
@@ -52,7 +52,7 @@ class StateMachineNode():
         self.in_mission = False
         self.in_contact = False
         self.mission_step = 0
-        self.z_distances = [-0.75, -0.15, -0.35, -0.75]
+        self.z_distances = [-0.75, -0.15, -0.40, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
         self.mission_setpoints = [[-1.6, 0.0, 1.5,  0.0, 0.05, None],
                                   [-1.6, 0.0, 2.11, 0.0, 0.20, -0.7],
@@ -199,6 +199,9 @@ class StateMachineNode():
 
         self.trajectory_pub.publish(trajectory_msg)
         rp.loginfo('Trajectory setpoint {} published'.format(self.mission_step))
+        rp.loginfo('Current Position wrt World is: {}, {}, {}'.format(
+                    self.drone_position[0], self.drone_position[1], self.drone_position[2]
+                ))
 
     def checkState(self,):
         dx = abs(self.drone_position[0] -
@@ -210,8 +213,8 @@ class StateMachineNode():
         do = abs(self.drone_orientation -
                  self.mission_setpoints[self.mission_step][3])
 
-        pose_condition = dx < 0.05 and \
-            dy < 0.05 and \
+        pose_condition = dx < 0.03 and \
+            dy < 0.03 and \
             dz < self.mission_setpoints[self.mission_step][4] and \
             do < 0.075
 
