@@ -32,7 +32,8 @@ class StateMachineNode():
         self.in_contact = False
         self.mission_step = 5  # status of Deploymission
         #self.retivemission_step = 0
-
+        
+        #[x,y,z,tolearance,Distb]
         self.mission_points = [[-1.6, 0.0, 1.5, 0.02, None],  # desired Setpoints for Deploy Mission
                                [- 1.6, 0.0, 2.11, 0.2, -0.7],
                                [- 1.6, 0.0, 1.90, 0.2, +0.7],
