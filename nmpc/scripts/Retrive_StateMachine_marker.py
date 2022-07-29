@@ -32,8 +32,8 @@ class StateMachineNode():
 
         # Sensor deployment point relative to marker
         self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.12 ],       #deployed_x
-                                           [0.0, 1.0, 0.0, 0.09], #deployed_y
-                                           [0.0, 0.0, 1.0, -0.00], #deployed_z
+                                           [0.0, 1.0, 0.0, 0.09],         #deployed_y
+                                           [0.0, 0.0, 1.0, -0.00],        #deployed_z
                                            [0.0, 0.0, 0.0, 1.0]])
 
         # Marker's pose used for setpoints
@@ -48,15 +48,15 @@ class StateMachineNode():
         # Mission variables
         self.setpoints_initialized = False
         self.publish_setpoint = True
-        self.in_mission = True
+        self.in_mission = False
         self.in_contact = False
         self.mission_step = 0
         self.z_distances = [-0.95, -0.15, -0.4, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
-        self.mission_setpoints = [[-1.6, 0.0, 1.5,  0.0, 0.05, None],
-                                  [-1.6, 0.0, 2.11, 0.0, 0.20, -0.7],
-                                  [-1.6, 0.0, 1.90, 0.0, 0.20, +0.7],
-                                  [-1.6, 0.0, 1.3,  0.0, 0.05, None]]
+        self.mission_setpoints = [[0.0, 0.0, 0.0,  0.0, 0.05, None],
+                                  [0.0, 0.0, 0.0,  0.0, 0.20, -0.7],
+                                  [0.0, 0.0, 0.0,  0.0, 0.20, +0.7],
+                                  [0.0, 0.0, 0.0,  0.0, 0.05, None]]
 
         # Subscribers
         self.state_sub = rp.Subscriber(
@@ -78,6 +78,13 @@ class StateMachineNode():
     """
        Callbacks
     """
+
+    def rcCallback(self, msg):
+    # Assign a button on RC to set either Deploy(Down2006) or Retrive(Top982) Mission
+        if self.mission_bttn != msg.channels[9]:
+            self.mission_bttn = msg.channels[9]
+            self.in_mission = True
+
 
     def stateCallback(self, msg):
         # Update Drone pose and disturbances
@@ -123,11 +130,11 @@ class StateMachineNode():
                                            msg.marker_pose.orientation.y,
                                            msg.marker_pose.orientation.z).normalized()
 
-                H_world_marker = np.identity(4)
-                H_world_marker[0, 3] = msg.marker_pose.position.x
-                H_world_marker[1, 3] = msg.marker_pose.position.y
-                H_world_marker[2, 3] = msg.marker_pose.position.z
-                H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
+                self.H_world_marker = np.identity(4)
+                self.H_world_marker[0, 3] = msg.marker_pose.position.x
+                self.H_world_marker[1, 3] = msg.marker_pose.position.y
+                self.H_world_marker[2, 3] = msg.marker_pose.position.z
+                self.H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
                     marker_att)
 
                 R = quaternion.as_rotation_matrix(marker_att)
@@ -140,7 +147,7 @@ class StateMachineNode():
                     rp.logwarn(
                         'The marker\'s position changed too much. Updating setpoints')
 
-                    self.calculateMissionSetpoints(H_world_marker)
+                    self.calculateMissionSetpoints(self.H_world_marker)
 
     """
        Helper functions
@@ -187,7 +194,7 @@ class StateMachineNode():
         trajectory_msg.trajectory.append(setpoint_msg)
 
         self.trajectory_pub.publish(trajectory_msg)
-	rp.loginfo(trajectory_msg)
+	    #rp.loginfo(trajectory_msg)
 
     def checkState(self,):
         dx = abs(self.drone_position[0] -
@@ -266,4 +273,4 @@ class StateMachineNode():
 
 
 if __name__ == '__main__':
-    StateMachineNode(5)                #Define the deployed points in markers frame here
+    StateMachineNode(5)               
