@@ -115,7 +115,7 @@ class StateMachineNode():
                 self.H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
                     marker_att)
 
-                self.calculateMissionSetpoints(self.H_world_marker)
+                self.calculateMissionSetpoints()   #(self.H_world_marker)
                 self.setpoints_initialized = True
 
             else:
@@ -145,7 +145,7 @@ class StateMachineNode():
                     rp.logwarn(
                         'The marker\'s position changed too much. Updating setpoints')
 
-                    self.calculateMissionSetpoints(self.H_world_marker)
+                    self.calculateMissionSetpoints()  #(self.H_world_marker)
 
     def rcCallback(self, msg):
         # Check RC button that specifies mission type
@@ -159,20 +159,20 @@ class StateMachineNode():
        Helper functions
     """
 
-    def calculateMissionSetpoints(self, H_world_marker):
+    def calculateMissionSetpoints(self,):
         # Update marker pose
-        self.marker_position = np.array([H_world_marker[0, 3],
-                                         H_world_marker[1, 3],
-                                         H_world_marker[2, 3]])
+        self.marker_position = np.array([self.H_world_marker[0, 3],
+                                         self.H_world_marker[1, 3],
+                                         self.H_world_marker[2, 3]])
         self.marker_orientation = np.arctan2(
-            H_world_marker[1, 0], H_world_marker[0, 0])
+            self.H_world_marker[1, 0], self.H_world_marker[0, 0])
 
         for i in range(len(self.z_distances)):
             H_setpoint = self.H_marker_setpoint
             H_setpoint[2, 3] = self.z_distances[i]
 
             # Transform setpoint to world frame
-            H_world_setpoint = np.matmul(H_world_marker, H_setpoint)
+            H_world_setpoint = np.matmul(self.H_world_marker, H_setpoint)
 
             self.mission_setpoints[i][0] = H_world_setpoint[0, 3]
             self.mission_setpoints[i][1] = H_world_setpoint[1, 3]
