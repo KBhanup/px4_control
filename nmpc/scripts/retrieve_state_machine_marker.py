@@ -46,9 +46,7 @@ class StateMachineNode():
         # Mission variables
         self.setpoints_initialized = False
         self.publish_setpoint = True
-        self.in_mission = True
-
-        # Mission State
+        self.in_mission = False
         self.in_contact = False
         self.wt_sensor = False
 
@@ -78,6 +76,13 @@ class StateMachineNode():
     """
        Callbacks
     """
+
+    def rcCallback(self, msg):
+    # Assign a button on RC to set either Deploy(Down2006) or Retrive(Top982) Mission
+        if self.mission_bttn != msg.channels[9]:
+            self.mission_bttn = msg.channels[9]
+            self.in_mission = True
+
 
     def stateCallback(self, msg):
         # Update Drone pose and disturbances
@@ -123,11 +128,11 @@ class StateMachineNode():
                                            msg.marker_pose.orientation.y,
                                            msg.marker_pose.orientation.z).normalized()
 
-                H_world_marker = np.identity(4)
-                H_world_marker[0, 3] = msg.marker_pose.position.x
-                H_world_marker[1, 3] = msg.marker_pose.position.y
-                H_world_marker[2, 3] = msg.marker_pose.position.z
-                H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
+                self.H_world_marker = np.identity(4)
+                self.H_world_marker[0, 3] = msg.marker_pose.position.x
+                self.H_world_marker[1, 3] = msg.marker_pose.position.y
+                self.H_world_marker[2, 3] = msg.marker_pose.position.z
+                self.H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
                     marker_att)
 
                 R = quaternion.as_rotation_matrix(marker_att)
@@ -140,7 +145,7 @@ class StateMachineNode():
                     rp.logwarn(
                         'The marker\'s position changed too much. Updating setpoints')
 
-                    self.calculateMissionSetpoints(H_world_marker)
+                    self.calculateMissionSetpoints(self.H_world_marker)
 
     """
        Helper functions
