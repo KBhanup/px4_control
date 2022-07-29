@@ -5,10 +5,11 @@ t_pitch: 0.12494
 k_pitch: 0.88609
 
 # Damping coefficients
-damping_coef: [-0.29342, -0.29342, -0.13667]
+damping_coef: [-0.3068, -0.3068, -0.1610]
 
-# Thrust coefficient
-k_thrust: 17.5196
+# Thrust coefficients
+k_thrust_wt_sensor: 17.5196
+k_thrust_wo_sensor: 20.1133
 
 # Gravity on world frame
 gravity: -9.8066
@@ -27,8 +28,8 @@ thrust_cmd_w: 500
 
 # Backup PID gains
 x_pid: [1.21, 0.0, 0.2816]
-y_pid: [1.218, 0.0, 0.2325]
-z_pid: [0.9811, 0.0, 0.0245]
+y_pid: [1.22, 0.0, 0.2325]
+z_pid: [0.98, 0.0, 0.0245]
 o_pid: [0.3, 0.0, 0.0]
 
 # RC Switches

@@ -9,14 +9,15 @@
 #include <nav_msgs/Odometry.h>
 
 #include "px4_control_msgs/DroneStateMarker.h"
+#include "px4_control_msgs/MissionState.h"
 
 // Eigen
 #include <eigen3/Eigen/Dense>
 
 // Sensors
-#include "state_estimation/sensors/pose_sensor.h"
-#include "state_estimation/sensors/odometry_sensor.h"
 #include "state_estimation/sensors/marker_sensor.h"
+#include "state_estimation/sensors/odometry_sensor.h"
+#include "state_estimation/sensors/pose_sensor.h"
 
 // Common
 #include "state_estimation/common.h"
@@ -38,6 +39,7 @@ class StateObserver {
   ros::Subscriber marker_sub;
   ros::Subscriber att_ctrl_sub;
   ros::Subscriber mavros_status_sub;
+  ros::Subscriber mission_state_sub;
 
   // ROS Publishers
   ros::Publisher state_pub;
@@ -51,6 +53,7 @@ class StateObserver {
   void markerCallback(const geometry_msgs::PoseStamped &msg);
   void attCtrlCallback(const mavros_msgs::AttitudeTarget &msg);
   void mavrosStatusCallback(const mavros_msgs::State::ConstPtr &msg);
+  void missionStateCallback(const px4_control_msgs::MissionState &msg);
 
   /** @brief Loads the model parameters
    */
@@ -131,12 +134,13 @@ class StateObserver {
   Eigen::Matrix3d damping_matrix;
   double t_pitch, k_pitch, t_roll, k_roll;
   double damp_x, damp_y, damp_z;
-  double k_thrust;
+  double k_thrust, k_thrust_wt_sensor, k_thrust_wo_sensor;
   double gravity;
   double disturbance_limit;
   double pose_chi_critical;
   double odom_chi_critical;
   double marker_chi_critical;
+  bool wt_sensor;
 
   // Sensors
   PoseSensor *pose_sensor;

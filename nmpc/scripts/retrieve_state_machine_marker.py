@@ -8,9 +8,8 @@ import threading
 
 from Mag_Eng_DisEng_fns import Mag
 
-from std_msgs.msg import Bool
 from mavros_msgs.msg import RCIn
-from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint
+from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint, MissionState
 
 
 class StateMachineNode():
@@ -28,12 +27,11 @@ class StateMachineNode():
         self.sensor_magnet_on = Mag(14)
         self.sensor_magnet_off = Mag(15)
         self.drone_magnet = Mag(4)
-        # self.mission_bttn = 0
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.12 ],       #deployed_x
-                                           [0.0, 1.0, 0.0, 0.09], #deployed_y
-                                           [0.0, 0.0, 1.0, -0.00], #deployed_z
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.12],
+                                           [0.0, 1.0, 0.0, 0.0],
+                                           [0.0, 0.0, 1.0, 0.0],
                                            [0.0, 0.0, 0.0, 1.0]])
 
         # Marker's pose used for setpoints
@@ -49,26 +47,28 @@ class StateMachineNode():
         self.setpoints_initialized = False
         self.publish_setpoint = True
         self.in_mission = True
+
+        # Mission State
         self.in_contact = False
+        self.wt_sensor = False
+
         self.mission_step = 0
-        self.z_distances = [-0.95, -0.15, -0.4, -0.75]
+        self.z_distances = [-0.75, -0.15, -0.40, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
-        self.mission_setpoints = [[-1.6, 0.0, 1.5,  0.0, 0.05, None],
-                                  [-1.6, 0.0, 2.11, 0.0, 0.20, -0.7],
-                                  [-1.6, 0.0, 1.90, 0.0, 0.20, +0.7],
-                                  [-1.6, 0.0, 1.3,  0.0, 0.05, None]]
+        self.mission_setpoints = [[0.0, 0.0, 0.0, 0.0, 0.05, None],
+                                  [0.0, 0.0, 0.0, 0.0, 0.20, -0.7],
+                                  [0.0, 0.0, 0.0, 0.0, 0.20, +0.7],
+                                  [0.0, 0.0, 0.0, 0.0, 0.05, None]]
 
         # Subscribers
         self.state_sub = rp.Subscriber(
             '/drone_state', DroneStateMarker, self.stateCallback, queue_size=1)
 
-
         # Publishers
         self.trajectory_pub = rp.Publisher(
             '/drone_trajectory', Trajectory, queue_size=1, latch=True)
         self.in_contact_pub = rp.Publisher(
-            '/mission_state', Bool, queue_size=1)
-
+            '/mission_state', MissionState, queue_size=1)
 
         t = threading.Thread(target=self.missionControl())
         t.start()
@@ -86,9 +86,9 @@ class StateMachineNode():
                                         msg.pose.position.z])
 
         self.drone_att = np.quaternion(msg.marker_pose.orientation.w,
-                                  msg.marker_pose.orientation.x,
-                                  msg.marker_pose.orientation.y,
-                                  msg.marker_pose.orientation.z).normalized()
+                                       msg.marker_pose.orientation.x,
+                                       msg.marker_pose.orientation.y,
+                                       msg.marker_pose.orientation.z).normalized()
 
         R = quaternion.as_rotation_matrix(self.drone_att)
         self.drone_orientation = np.arctan2(R[1, 0], R[0, 0])
@@ -187,7 +187,12 @@ class StateMachineNode():
         trajectory_msg.trajectory.append(setpoint_msg)
 
         self.trajectory_pub.publish(trajectory_msg)
-	rp.loginfo(trajectory_msg)
+
+    def sendMissionState(self,):
+        mission_state_msg = MissionState()
+        MissionState.in_contact.data = self.in_contact
+        MissionState.wt_sensor.data = self.wt_sensor
+        self.mission_state_pub(mission_state_msg)
 
     def checkState(self,):
         dx = abs(self.drone_position[0] -
@@ -211,8 +216,6 @@ class StateMachineNode():
                 self.mission_setpoints[self.mission_step][5] + self.disturbances[2]) > 1.4
             return pose_condition and dist_condition
 
-
-
     """
        State Machine main function
     """
@@ -230,19 +233,16 @@ class StateMachineNode():
                 self.in_contact = True
                 rp.loginfo('Engaging drone magnet')
                 self.drone_magnet.dr_Magengage()
-                
-                rp.loginfo('Sensor deployed at: {}, {}, {}'.format(
-                    self.drone_position[0], self.drone_position[1], self.drone_position[2]
-                ))
-                
 
             elif self.mission_step == 2:
                 rp.loginfo('Disengaging sensor magnet')
                 self.sensor_magnet_off.Sn_Magdisengage()
+                rp.loginfo('Sensor retrieved')
                 self.in_contact = False
+                self.wt_sensor = True
 
             elif self.mission_step == 3:
-                rp.loginfo('Retrive mission finished')
+                rp.loginfo('Retrieve mission finished')
                 self.in_mission = False
 
             self.mission_step += 1
@@ -256,7 +256,7 @@ class StateMachineNode():
         r = rp.Rate(self.rate)
         while not rp.is_shutdown():
             # Publish in contact
-            self.in_contact_pub.publish(self.in_contact)
+            self.sendMissionState()
 
             # Run state machine
             if self.in_mission and self.setpoints_initialized:
@@ -266,4 +266,4 @@ class StateMachineNode():
 
 
 if __name__ == '__main__':
-    StateMachineNode(5)                #Define the deployed points in markers frame here
+    StateMachineNode(5)

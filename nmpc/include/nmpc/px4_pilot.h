@@ -11,12 +11,12 @@
 #include "ros/ros.h"
 
 // ROS messages
-#include <std_msgs/Bool.h>
 #include <mavros_msgs/RCIn.h>
 #include <mavros_msgs/State.h>
 #include <std_srvs/SetBool.h>
 
 #include "px4_control_msgs/DroneStateMarker.h"
+#include "px4_control_msgs/MissionState.h"
 #include "px4_control_msgs/Setpoint.h"
 #include "px4_control_msgs/Trajectory.h"
 
@@ -59,7 +59,7 @@ class PX4Pilot {
   void mavrosRCCallback(const mavros_msgs::RCIn::ConstPtr &msg);
   void droneStateCallback(const px4_control_msgs::DroneStateMarker &msg);
   void trajectoryCallback(const px4_control_msgs::Trajectory &msg);
-  void missionStateCallback(const std_msgs::Bool::ConstPtr &msg);
+  void missionStateCallback(const px4_control_msgs::MissionState &msg);
 
   // Service Callbacks
   bool enableControllerServCallback(std_srvs::SetBool::Request &req,
@@ -101,6 +101,7 @@ class PX4Pilot {
   bool allow_offboard;
   bool trajectory_loaded;
   bool in_contact;
+  bool wt_sensor;
   ros::Time last_state_time;
 
   // Backup PIDs
@@ -110,7 +111,8 @@ class PX4Pilot {
   PIDController *o_pid;
   std::vector<double> x_pid_k, y_pid_k, z_pid_k, o_pid_k;
 
-  model_parameters model_params;
+  model_parameters model_params_wt_sensor;
+  model_parameters model_params_wo_sensor;
   trajectory_setpoint drone_state;
   std::vector<double> disturbances, weights;
   std::vector<trajectory_setpoint> current_reference_trajectory;

@@ -47,6 +47,12 @@ class AcadosNMPC {
   bool initializeController(const model_parameters &model_params);
 
   /**
+   * @brief Sets the thrust coefficient
+   * @param model_params The model parameters
+   */
+  void setModelParameters(const model_parameters &model_params);
+
+  /**
    * @brief Sets the weighing matrix for the cost function
    * @param weights A vector containing the diagonal elements of the weighing
    * matrix

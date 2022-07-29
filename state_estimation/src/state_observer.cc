@@ -21,6 +21,8 @@ StateObserver::StateObserver(ros::NodeHandle &nh) {
                               &StateObserver::attCtrlCallback, this);
   mavros_status_sub = nh.subscribe("/mavros/state", 1,
                                    &StateObserver::mavrosStatusCallback, this);
+  mission_state_sub = nh.subscribe("/mission_state", 1,
+                                   &StateObserver::missionStateCallback, this);
 
   // Setup Publisher
   state_pub =
@@ -30,6 +32,8 @@ StateObserver::StateObserver(ros::NodeHandle &nh) {
   loadParameters();
   is_initialized = false;
   marker_found = false;
+  wt_sensor = true;
+  k_thrust = k_thrust_wt_sensor;
 
   // Initialize Sensors
   pose_sensor = new PoseSensor(R_pose, 50);
@@ -73,7 +77,8 @@ void StateObserver::loadParameters() {
   nh_pvt.param("damping_z", damp_z, -1.0);
   damping_matrix << damp_x, 0.0, 0.0, 0.0, damp_y, 0.0, 0.0, 0.0, damp_z;
 
-  nh_pvt.param("k_thrust", k_thrust, 1.0);
+  nh_pvt.param("k_thrust_wt_sensor", k_thrust_wt_sensor, 1.0);
+  nh_pvt.param("k_thrust_wo_sensor", k_thrust_wo_sensor, 1.0);
 
   nh_pvt.param("gravity", gravity, -9.8066);
   gravity_vector << 0.0, 0.0, gravity;
@@ -439,6 +444,19 @@ void StateObserver::markerCallback(const geometry_msgs::PoseStamped &msg) {
         ROS_WARN("Marker measurement was rejected");
       }
     }
+  }
+}
+
+void StateObserver::missionStateCallback(
+    const px4_control_msgs::MissionState &msg) {
+  bool wt_sensor_new = msg->wt_sensor.data;
+
+  if (wt_sensor_new != wt_sensor) {
+    if (wt_sensor_new)
+      k_thrust = k_thrust_wt_sensor;
+    else
+      k_thrust = k_thrust_wo_sensor;
+    wt_sensor = wt_sensor_new;
   }
 }
 

@@ -66,6 +66,12 @@ bool AcadosNMPC::initializeController(const model_parameters &model_params) {
   ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbx",
                                 idxbx0);
 
+  setThrustCoefficient(model_params);
+
+  return true;
+}
+
+void AcadosNMPC::setModelParameters(const model_parameters &model_params) {
   // Set parameters
   acados_model_parameters = new double[DRONE_W_DISTURBANCES_NP];
   acados_model_parameters[0] = model_params.t_roll;     // Roll time constant
@@ -87,8 +93,6 @@ bool AcadosNMPC::initializeController(const model_parameters &model_params) {
     drone_w_disturbances_acados_update_params(acados_ocp_capsule, i,
                                               acados_model_parameters,
                                               DRONE_W_DISTURBANCES_NP);
-
-  return true;
 }
 
 bool AcadosNMPC::setWeighingMatrix(const std::vector<double> &weights) {

@@ -72,10 +72,11 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
 
   // Load parameters
   loadParameters();
+  wt_sensor = true;
 
   // Initialize acados NMPC
   nmpc_controller = new AcadosNMPC();
-  if (nmpc_controller->initializeController(model_params) &&
+  if (nmpc_controller->initializeController(model_params_wt_sensor) &&
       nmpc_controller->setWeighingMatrix(weights)) {
     ROS_INFO("NMPC Initialized\n");
   } else {
@@ -219,17 +220,45 @@ void PX4Pilot::trajectoryCallback(const px4_control_msgs::Trajectory &msg) {
 
     current_reference_trajectory.push_back(setpoint);
   }
+
   // Stop controller while loading the new trajectory
-  controller_enabled = false;
-  nmpc_controller->setTrajectory(current_reference_trajectory);
-  controller_enabled = true;
+  if (controller_enabled) {
+    controller_enabled = false;
+    nmpc_controller->setTrajectory(current_reference_trajectory);
+    controller_enabled = true;
+  } else {
+    nmpc_controller->setTrajectory(current_reference_trajectory);
+  }
 
   ROS_INFO("Trajectory loaded");
   trajectory_loaded = true;
 }
 
-void PX4Pilot::missionStateCallback(const std_msgs::Bool::ConstPtr &msg) {
-  in_contact = msg->data;
+void PX4Pilot::missionStateCallback(const px4_control_msgs::MissionState &msg) {
+  in_contact = msg->in_contact.data;
+
+  bool wt_sensor_new = msg->wt_sensor.data;
+
+  if (wt_sensor_new != wt_sensor) {
+    if (wt_sensor_new) {
+      if (controller_enabled) {
+        controller_enabled = false;
+        nmpc_controller->setModelParameters(model_params_wt_sensor);
+        controller_enabled = true;
+      } else {
+        nmpc_controller->setModelParameters(model_params_wt_sensor);
+      }
+    } else {
+      if (controller_enabled) {
+        controller_enabled = false;
+        nmpc_controller->setModelParameters(model_params_wo_sensor);
+        controller_enabled = true;
+      } else {
+        nmpc_controller->setModelParameters(model_params_wo_sensor);
+      }
+    }
+    wt_sensor = wt_sensor_new;
+  }
 }
 
 bool PX4Pilot::enableControllerServCallback(std_srvs::SetBool::Request &req,
@@ -258,20 +287,35 @@ void PX4Pilot::loadParameters() {
   // Create private nodehandle to load parameters
   ros::NodeHandle nh_pvt("~");
 
-  // Controller parameters
-  model_params.t_pitch = loadSingleParameter(nh_pvt, "t_pitch", 1.0);
-  model_params.k_pitch = loadSingleParameter(nh_pvt, "k_pitch", 1.0);
-  model_params.t_roll = loadSingleParameter(nh_pvt, "t_roll", 1.0);
-  model_params.k_roll = loadSingleParameter(nh_pvt, "k_roll", 1.0);
-  model_params.k_thrust = loadSingleParameter(nh_pvt, "k_thrust", 1.0);
-  model_params.gravity = loadSingleParameter(nh_pvt, "gravity", -9.8066);
+  // Controller parameters with sensor
+  model_params_wt_sensor.t_pitch = loadSingleParameter(nh_pvt, "t_pitch", 1.0);
+  model_params_wt_sensor.k_pitch = loadSingleParameter(nh_pvt, "k_pitch", 1.0);
+  model_params_wt_sensor.t_roll = loadSingleParameter(nh_pvt, "t_roll", 1.0);
+  model_params_wt_sensor.k_roll = loadSingleParameter(nh_pvt, "k_roll", 1.0);
+  model_params_wt_sensor.k_thrust =
+      loadSingleParameter(nh_pvt, "k_thrust_wt_sensor", 1.0);
+  model_params_wt_sensor.gravity =
+      loadSingleParameter(nh_pvt, "gravity", -9.8066);
 
   std::vector<double> vector_parameter{0.0, 0.0, 0.0};
   std::vector<double> damping_coef =
       loadVectorParameter(nh_pvt, "damping_coef", vector_parameter);
-  model_params.damp_x = damping_coef[0];
-  model_params.damp_y = damping_coef[1];
-  model_params.damp_z = damping_coef[2];
+  model_params_wt_sensor.damp_x = damping_coef[0];
+  model_params_wt_sensor.damp_y = damping_coef[1];
+  model_params_wt_sensor.damp_z = damping_coef[2];
+
+  // Controller parameters without sensor
+  model_params_wo_sensor.t_pitch = model_params_wt_sensor.t_pitch;
+  model_params_wo_sensor.k_pitch = model_params_wt_sensor.k_pitch;
+  model_params_wo_sensor.t_roll = model_params_wt_sensor.t_roll;
+  model_params_wo_sensor.k_roll = model_params_wt_sensor.k_roll;
+  model_params_wo_sensor.k_thrust =
+      loadSingleParameter(nh_pvt, "k_thrust_wo_sensor", 1.0);
+  model_params_wo_sensor.gravity = model_params_wt_sensor.gravity;
+
+  model_params_wo_sensor.damp_x = model_params_wt_sensor.damp_x;
+  model_params_wo_sensor.damp_y = model_params_wt_sensor.damp_y;
+  model_params_wo_sensor.damp_z = model_params_wt_sensor.damp_z;
 
   // Controller weights
   std::vector<double> pos_w =
