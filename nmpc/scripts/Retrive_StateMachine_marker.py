@@ -28,12 +28,12 @@ class StateMachineNode():
         self.sensor_magnet_on = Mag(14)
         self.sensor_magnet_off = Mag(15)
         self.drone_magnet = Mag(4)
-        self.mission_bttn = 0
+        # self.mission_bttn = 0
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, deployed_x],     #deployed_x   #Define the deployed points in markers frame here
-                                           [0.0, 1.0, 0.0, deployed_y],     #deployed_y
-                                           [0.0, 0.0, 1.0, deployed_z],     #deployed_z
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.12 ],       #deployed_x
+                                           [0.0, 1.0, 0.0, 0.09], #deployed_y
+                                           [0.0, 0.0, 1.0, -0.00], #deployed_z
                                            [0.0, 0.0, 0.0, 1.0]])
 
         # Marker's pose used for setpoints
@@ -48,10 +48,10 @@ class StateMachineNode():
         # Mission variables
         self.setpoints_initialized = False
         self.publish_setpoint = True
-        self.in_mission = False
+        self.in_mission = True
         self.in_contact = False
         self.mission_step = 0
-        self.z_distances = [-0.95, -0.15, -0.40, -0.75]
+        self.z_distances = [-0.95, -0.15, -0.4, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
         self.mission_setpoints = [[-1.6, 0.0, 1.5,  0.0, 0.05, None],
                                   [-1.6, 0.0, 2.11, 0.0, 0.20, -0.7],
@@ -123,11 +123,11 @@ class StateMachineNode():
                                            msg.marker_pose.orientation.y,
                                            msg.marker_pose.orientation.z).normalized()
 
-                self.H_world_marker = np.identity(4)
-                self.H_world_marker[0, 3] = msg.marker_pose.position.x
-                self.H_world_marker[1, 3] = msg.marker_pose.position.y
-                self.H_world_marker[2, 3] = msg.marker_pose.position.z
-                self.H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
+                H_world_marker = np.identity(4)
+                H_world_marker[0, 3] = msg.marker_pose.position.x
+                H_world_marker[1, 3] = msg.marker_pose.position.y
+                H_world_marker[2, 3] = msg.marker_pose.position.z
+                H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
                     marker_att)
 
                 R = quaternion.as_rotation_matrix(marker_att)
@@ -140,15 +140,7 @@ class StateMachineNode():
                     rp.logwarn(
                         'The marker\'s position changed too much. Updating setpoints')
 
-                    self.calculateMissionSetpoints(self.H_world_marker)
-
-    def rcCallback(self, msg):
-        # Check RC button that specifies mission type
-        # Deploy: Down - 2006
-        # Retrieve: Top - 982
-        if self.mission_bttn != msg.channels[9]:
-            self.mission_bttn = msg.channels[9]
-            self.in_mission = True
+                    self.calculateMissionSetpoints(H_world_marker)
 
     """
        Helper functions
@@ -195,6 +187,7 @@ class StateMachineNode():
         trajectory_msg.trajectory.append(setpoint_msg)
 
         self.trajectory_pub.publish(trajectory_msg)
+	rp.loginfo(trajectory_msg)
 
     def checkState(self,):
         dx = abs(self.drone_position[0] -
@@ -206,8 +199,8 @@ class StateMachineNode():
         do = abs(self.drone_orientation -
                  self.mission_setpoints[self.mission_step][3])
 
-        pose_condition = dx < 0.05 and \
-            dy < 0.05 and \
+        pose_condition = dx < 0.03 and \
+            dy < 0.03 and \
             dz < self.mission_setpoints[self.mission_step][4] and \
             do < 0.075
 
@@ -273,4 +266,4 @@ class StateMachineNode():
 
 
 if __name__ == '__main__':
-    StateMachineNode(5)                
+    StateMachineNode(5)                #Define the deployed points in markers frame here
