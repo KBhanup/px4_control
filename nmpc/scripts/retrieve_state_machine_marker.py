@@ -49,7 +49,7 @@ class StateMachineNode():
         self.in_mission = False
         self.in_contact = False
         self.wt_sensor = False
-
+        self.mission_bttn = 0
         self.mission_step = 0
         self.z_distances = [-0.95, -0.15, -0.40, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
@@ -65,6 +65,8 @@ class StateMachineNode():
         # Publishers
         self.trajectory_pub = rp.Publisher(
             '/drone_trajectory', Trajectory, queue_size=1, latch=True)
+        self.mission_state_pub = rp.Publisher(
+            '/mission_state', MissionState, queue_size=1)
         self.in_contact_pub = rp.Publisher(
             '/mission_state', MissionState, queue_size=1)
 

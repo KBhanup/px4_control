@@ -52,7 +52,7 @@ class StateMachineNode():
         # Mission State
         self.in_contact = False
         self.wt_sensor = True
-
+        self.mission_bttn = 0
         self.mission_step = 0
         self.z_distances = [-0.75, -0.15, -0.40, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
@@ -203,9 +203,9 @@ class StateMachineNode():
 
     def sendMissionState(self,):
         mission_state_msg = MissionState()
-        MissionState.in_contact.data = self.in_contact
-        MissionState.wt_sensor.data = self.wt_sensor
-        self.mission_state_pub(mission_state_msg)
+        mission_state_msg.in_contact.data = self.in_contact
+        mission_state_msg.wt_sensor.data = self.wt_sensor
+        self.mission_state_pub.publish(mission_state_msg)
 
     def checkState(self,):
         dx = abs(self.drone_position[0] -
