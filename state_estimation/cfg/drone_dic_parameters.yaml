@@ -13,7 +13,7 @@ k_thrust: 32.56196
 # Gravity on world frame
 gravity: -9.8066
 
-# Cost function weights
+# NMPC cost function weights
 # pos_w, vel_x -> [x, y, z]
 # att_w -> [roll, pitch, yaw]
 pos_w: [21, 21, 17]
@@ -24,6 +24,19 @@ yaw_rate_cmd_w: 70
 pitch_cmd_w: 250
 roll_cmd_w: 250
 thrust_cmd_w: 750
+
+# NMPC input constraints
+# bound -> [yaw_cmd, pitch_cmd, roll_cmd, thrust]
+lbu: [-0.15, -0.1, -0.1, 0.27]
+ubu: [ 0.15,  0.1,  0.1, 0.33]
+
+# Backup velocity controller weights
+# gain -> [position error gain, velocity error gain]
+# PID -> [kP, kI, kD]
+x_gain: [0.95, 0.65]
+y_gain: [0.95, 0.65]
+z_gain: [0.6, 0.45]
+o_pid: [0.3, 0.0, 0.4]
 
 # RC Switches
 auto_channel: 13

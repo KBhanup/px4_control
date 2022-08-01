@@ -42,9 +42,13 @@ class AcadosNMPC {
   /**
    * @brief Initializes controller and sets the model parameters
    * @param model_params The model parameters
+   * @param input_lower_bound The command lower bound constraint
+   * @param input_upper_bound The command upper bound constraint
    * @returns True if successful
    */
-  bool initializeController(const model_parameters &model_params);
+  bool initializeController(const model_parameters &model_params,
+                            const std::vector<double> &input_lower_bound,
+                            const std::vector<double> &input_upper_bound);
 
   /**
    * @brief Sets the weighing matrix for the cost function
@@ -72,6 +76,14 @@ class AcadosNMPC {
                      const trajectory_setpoint &start_point,
                      const trajectory_setpoint &goal_point,
                      const std::vector<double> &disturbances);
+
+  /**
+   * @brief Returns the current setpoint
+   * @returns current trajectory setpoint
+   */
+  trajectory_setpoint getCurrentSetpoint() const {
+    return current_reference_trajectory[trajectory_index];
+  }
 
   /**
    * @brief Sets the current UAS state

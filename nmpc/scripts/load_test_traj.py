@@ -4,40 +4,63 @@ import time
 
 from px4_control_msgs.msg import Setpoint, Trajectory
 
-t_traj = 20.0
-control_rate = 10.0
+# Create an ascending spiral trajectory
+t_traj = 30.0
+control_rate = 20.0
 
-l = 0.5
-alt = 0.5
-theta = 0.0
+radius = 1.0
+start_alt = 1.0
+final_alt = 2.0
+max_yaw = 0.75 * math.pi
+
 steps = int(t_traj * control_rate)
 
-traj = []
+z_velocity = (final_alt - start_alt) / t_traj
+
+trajectory = Trajectory()
 
 for i in range(steps):
-  theta_i = (2 * i * math.pi) / steps
+    theta_i = (2 * i * math.pi) / steps
 
-  ctheta = math.cos(theta_i)
-  stheta = math.sin(theta_i)
+    ctheta = math.cos(theta_i)
+    stheta = math.sin(theta_i)
 
-  set_point = Setpoint()
+    setpoint = Setpoint()
 
-  set_point.position.x = l * ctheta
-  set_point.position.y = l * stheta
-  set_point.position.z = alt
+    setpoint.position.x = radius * ctheta
+    setpoint.position.y = radius * stheta
+    setpoint.position.z = start_alt + z_velocity * i / 20.0
 
-  set_point.velocity.x = -l * stheta
-  set_point.velocity.y = l * ctheta
-  set_point.velocity.z = 0.0
+    setpoint.velocity.x = radius * stheta
+    setpoint.velocity.y = radius * ctheta
+    setpoint.velocity.z = z_velocity
 
-  set_point.orientation.x = 0.0
-  set_point.orientation.y = 0.0
-  set_point.orientation.z = 0.5 * (theta_i - math.pi)
+    setpoint.orientation.x = 0.0
+    setpoint.orientation.y = 0.0
+    setpoint.orientation.z = stheta * max_yaw
 
-  traj.append(set_point)
+    trajectory.trajectory.append(setpoint)
+
+# Add last point with zero velocities
+setpoint = Setpoint()
+
+setpoint.position.x = 1.0
+setpoint.position.y = 0.0
+setpoint.position.z = 2.0
+
+setpoint.velocity.x = 0.0
+setpoint.velocity.y = 0.0
+setpoint.velocity.z = 0.0
+
+setpoint.orientation.x = 0.0
+setpoint.orientation.y = 0.0
+setpoint.orientation.z = 0.0
+
+trajectory.trajectory.append(setpoint)
 
 # Publish trajectory
 rp.init_node('trajectory_publisher')
+trajectory.header.stamp = rp.Time.now()
 pub = rp.Publisher("/drone_trajectory", Trajectory, queue_size=1, latch=True)
-pub.publish(traj)
+pub.publish(trajectory)
 time.sleep(1.0)
