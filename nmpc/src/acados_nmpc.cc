@@ -66,7 +66,7 @@ bool AcadosNMPC::initializeController(const model_parameters &model_params) {
   ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbx",
                                 idxbx0);
 
-  setThrustCoefficient(model_params);
+  setModelParameters(model_params);
 
   return true;
 }
