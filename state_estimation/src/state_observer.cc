@@ -449,7 +449,7 @@ void StateObserver::markerCallback(const geometry_msgs::PoseStamped &msg) {
 
 void StateObserver::missionStateCallback(
     const px4_control_msgs::MissionState &msg) {
-  bool wt_sensor_new = msg->wt_sensor.data;
+  bool wt_sensor_new = msg.wt_sensor.data;
 
   if (wt_sensor_new != wt_sensor) {
     if (wt_sensor_new)

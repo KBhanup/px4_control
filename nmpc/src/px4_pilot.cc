@@ -235,9 +235,9 @@ void PX4Pilot::trajectoryCallback(const px4_control_msgs::Trajectory &msg) {
 }
 
 void PX4Pilot::missionStateCallback(const px4_control_msgs::MissionState &msg) {
-  in_contact = msg->in_contact.data;
+  in_contact = msg.in_contact.data;
 
-  bool wt_sensor_new = msg->wt_sensor.data;
+  bool wt_sensor_new = msg.wt_sensor.data;
 
   if (wt_sensor_new != wt_sensor) {
     if (wt_sensor_new) {
