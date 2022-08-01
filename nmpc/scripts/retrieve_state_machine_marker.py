@@ -199,7 +199,7 @@ class StateMachineNode():
         mission_state_msg = MissionState()
         mission_state_msg.in_contact.data = self.in_contact
         mission_state_msg.wt_sensor.data = self.wt_sensor
-        self.mission_state_pub(mission_state_msg)
+        self.mission_state_pub.publish(mission_state_msg)
 
     def checkState(self,):
         dx = abs(self.drone_position[0] -
