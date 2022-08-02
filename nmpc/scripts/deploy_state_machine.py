@@ -50,6 +50,7 @@ class StateMachineNode():
         self.disturbances = None
 
         # Mission variables
+        self.mission_bttn = 0
         self.setpoints_initialized = False
         self.publish_setpoint = True
         self.in_mission = False
@@ -215,9 +216,9 @@ class StateMachineNode():
 
     def sendMissionState(self,):
         mission_state_msg = MissionState()
-        MissionState.in_contact.data = self.in_contact
-        MissionState.wt_sensor.data = self.wt_sensor
-        self.mission_state_pub(mission_state_msg)
+        mission_state_msg.in_contact.data = self.in_contact
+        mission_state_msg.wt_sensor.data = self.wt_sensor
+        self.mission_state_pub.publish(mission_state_msg)
 
     def getOffsets(self,):
         dx = abs(self.drone_position[0] -
