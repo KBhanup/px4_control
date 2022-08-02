@@ -79,6 +79,8 @@ class StateMachineNode():
         # Publishers
         self.trajectory_pub = rp.Publisher(
             '/drone_trajectory', Trajectory, queue_size=1, latch=True)
+        self.trajectory_log_pub = rp.Publisher(
+            '/drone_trajectory_log', Trajectory, queue_size=1)
         self.mission_state_pub = rp.Publisher(
             '/mission_state', MissionState, queue_size=1)
         self.deployed_setpoint_pub = rp.Publisher(
@@ -154,7 +156,7 @@ class StateMachineNode():
                 d_o = marker_current_orientation - self.marker_orientation
                 d_p = marker_current_pos - self.marker_position
 
-                if np.dot(d_p, d_p) > 0.02 or abs(d_o) > 0.075:
+                if np.dot(d_p, d_p) > 0.001 or abs(d_o) > 0.075:
                     rp.logwarn(
                         'The marker\'s position changed too much. Updating setpoints')
 
@@ -214,6 +216,24 @@ class StateMachineNode():
 
         self.trajectory_pub.publish(trajectory_msg)
 
+    def publishTrajectoryLog(self,):
+        setpoint_msg = Setpoint()
+        setpoint_msg.position.x = self.mission_setpoints[self.mission_step]['set_x']
+        setpoint_msg.position.y = self.mission_setpoints[self.mission_step]['set_y']
+        setpoint_msg.position.z = self.mission_setpoints[self.mission_step]['set_z']
+        setpoint_msg.velocity.x = 0.0
+        setpoint_msg.velocity.y = 0.0
+        setpoint_msg.velocity.z = 0.0
+        setpoint_msg.orientation.x = 0.0
+        setpoint_msg.orientation.y = 0.0
+        setpoint_msg.orientation.z = self.mission_setpoints[self.mission_step]['set_o']
+
+        trajectory_msg = Trajectory()
+        trajectory_msg.header.stamp = rp.Time.now()
+        trajectory_msg.trajectory.append(setpoint_msg)
+
+        self.trajectory_log_pub.publish(trajectory_msg)
+
     def sendMissionState(self,):
         mission_state_msg = MissionState()
         mission_state_msg.in_contact.data = self.in_contact
@@ -231,6 +251,15 @@ class StateMachineNode():
                  self.mission_setpoints[self.mission_step]['set_o'])
 
         return dx, dy, dz, do
+
+    def checkPoseCondition(self, dx, dy, dz, do):
+        pose_condition = \
+            dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
+            dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
+            dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
+            do < 0.075
+
+        return pose_condition
 
     def deployedPointwrtMarker(self,):
         H_world_deployed = np.identity(4)
@@ -283,11 +312,8 @@ class StateMachineNode():
         if self.mission_step == 0:
             # Check position
             dx, dy, dz, do = self.getOffsets()
-            pose_condition = \
-                dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
-                do < 0.075
+            pose_condition = self.checkPoseCondition(dx, dy, dz, do)
+
             if pose_condition:
                 self.mission_step += 1
                 self.publish_setpoint = True
@@ -297,9 +323,9 @@ class StateMachineNode():
             dt = self.mission_start_t - rp.Time.now()
 
             # Check time passed
-            if dt.secs > 30:
+            if dt.secs > 10:
                 rp.loginfo(
-                    'More than 30 seconds have passed since started trying to deploy. Move back and try again')
+                    'More than 10 seconds have passed since started trying to deploy. Move back and try again')
                 self.mission_step -= 1
                 self.publish_setpoint = True
 
@@ -313,12 +339,7 @@ class StateMachineNode():
                 self.mission_step -= 1
                 self.publish_setpoint = True
 
-            pose_condition = \
-                dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
-                do < 0.075
-
+            pose_condition = self.checkPoseCondition(dx, dy, dz, do)
             dist_condition = abs(
                 self.mission_setpoints[self.mission_step]['required_force'] + self.disturbances[2]) > 1.4
 
@@ -337,9 +358,9 @@ class StateMachineNode():
             dt = self.mission_start_t - rp.Time.now()
 
             # Check time passed
-            if dt.secs > 30:
+            if dt.secs > 10:
                 rp.loginfo(
-                    'More than 30 seconds have passed since started trying to deploy. Move back and try again')
+                    'More than 10 seconds have passed since started trying to deploy. Move back and try again')
                 rp.loginfo('Disengaging sensor magnet')
                 self.sensor_magnet_off.Sn_Magdisengage()
                 self.mission_step -= 1
@@ -357,12 +378,7 @@ class StateMachineNode():
                 self.mission_step -= 1
                 self.publish_setpoint = True
 
-            pose_condition = \
-                dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
-                do < 0.075
-
+            pose_condition = self.checkPoseCondition(dx, dy, dz, do)
             dist_condition = abs(
                 self.mission_setpoints[self.mission_step]['required_force'] + self.disturbances[2]) > 1.4
 
@@ -379,11 +395,8 @@ class StateMachineNode():
         else:
             # Check position
             dx, dy, dz, do = self.getOffsets()
-            pose_condition = \
-                dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-                dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
-                do < 0.075
+            pose_condition = self.checkPoseCondition(dx, dy, dz, do)
+
             if pose_condition:
                 rp.loginfo('Deploy mission finished')
                 self.in_mission = False
@@ -400,6 +413,7 @@ class StateMachineNode():
 
             # Run state machine
             if self.in_mission and self.setpoints_initialized:
+                self.publishTrajectoryLog()
                 self.stateMachine()
 
             r.sleep()

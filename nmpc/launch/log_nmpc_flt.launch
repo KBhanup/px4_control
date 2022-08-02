@@ -5,27 +5,30 @@
 
 /rosout
 /rosout_agg
-
-/mavros/vision_pose/pose
-/vrpn_client_node/Mag_Sensorpack/pose
-/marker/pose
-/stag_ros/markers
-
 /diagnostics
+
 /mavros/state
-/drone_state
-/mavros/local_position/odom
 /mavros/rc/in
-/drone_trajectory
-/drone_trajectory_log
-
-
 /mavros/imu/data
 /mavros/actuator_control
 /mavros/setpoint_raw/local
 /mavros/setpoint_raw/attitude
+/mavros/local_position/odom
+/mavros/vision_pose/pose
 
+/vrpn_client_node/Mag_Sensorpack/pose
 
+/stag_ros/markers
+/stag_ros/bundles
+/marker/pose
+
+/drone_state
+/drone_trajectory
+/drone_trajectory_log
+
+/mission_state
+
+/deployed_setpoint
 
 "
 	/>
