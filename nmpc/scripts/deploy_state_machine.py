@@ -322,28 +322,13 @@ class StateMachineNode():
         # Try to deploy sensor
         elif self.mission_step == 1:
             dt = rp.Time.now() - self.mission_start_t
-
-            # Check time passed
-            if dt.secs > 20:
-                rp.logwarn(
-                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
-                self.mission_step -= 1
-                self.publish_setpoint = True
-
-            # Check position and required force
             dx, dy, dz, do = self.getOffsets()
-
-            # Check if vertical position too close to setpoint
-            if dz < 0.05:
-                rp.logwarn(
-                    'Drone is closer than it should be. Move back and try again')
-                self.mission_step -= 1
-                self.publish_setpoint = True
 
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)
             dist_condition = abs(
                 self.mission_setpoints[self.mission_step]['required_force'] + self.disturbances[2]) > 1.4
 
+            # Check position and required force
             if pose_condition and dist_condition:
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
@@ -353,35 +338,30 @@ class StateMachineNode():
                 self.mission_step += 1
                 self.publish_setpoint = True
 
+            # Check time passed
+            elif dt.secs > 20:
+                rp.logwarn(
+                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
+                self.mission_step -= 1
+                self.publish_setpoint = True
+
+            # Check if vertical position too close to setpoint
+            elif dz < 0.05:
+                rp.logwarn(
+                    'Drone is closer than it should be. Move back and try again')
+                self.mission_step -= 1
+                self.publish_setpoint = True
+
         # Check if sensor is attached
         elif self.mission_step == 2:
             dt = rp.Time.now() - self.mission_start_t
-
-            # Check time passed
-            if dt.secs > 20:
-                rp.logwarn(
-                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
-                rp.loginfo('Disengaging sensor magnet')
-                self.sensor_magnet_off.Sn_Magdisengage()
-                self.mission_step -= 1
-                self.publish_setpoint = True
-
-            # Check position  and required force
             dx, dy, dz, do = self.getOffsets()
-
-            # Check if vertical position too close to setpoint
-            if dz < 0.05:
-                rp.logwarn(
-                    'Drone is closer than it should be. Move back and try again')
-                rp.loginfo('Disengaging sensor magnet')
-                self.sensor_magnet_off.Sn_Magdisengage()
-                self.mission_step -= 1
-                self.publish_setpoint = True
 
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)
             dist_condition = abs(
                 self.mission_setpoints[self.mission_step]['required_force'] + self.disturbances[2]) > 1.4
 
+            # Check position and required force
             if pose_condition and dist_condition:
                 self.deployedPointwrtMarker()
                 rp.loginfo('Disengaging drone magnet')
@@ -391,6 +371,24 @@ class StateMachineNode():
                 self.in_contact = False
                 self.wt_sensor = False
                 self.mission_step += 1
+                self.publish_setpoint = True
+
+            # Check time passed
+            elif dt.secs > 20:
+                rp.logwarn(
+                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
+                rp.loginfo('Disengaging sensor magnet')
+                self.sensor_magnet_off.Sn_Magdisengage()
+                self.mission_step -= 1
+                self.publish_setpoint = True
+
+            # Check if vertical position too close to setpoint
+            elif dz < 0.05:
+                rp.logwarn(
+                    'Drone is closer than it should be. Move back and try again')
+                rp.loginfo('Disengaging sensor magnet')
+                self.sensor_magnet_off.Sn_Magdisengage()
+                self.mission_step -= 1
                 self.publish_setpoint = True
 
         # Move away from deployment position
