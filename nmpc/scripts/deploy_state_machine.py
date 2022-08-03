@@ -1,13 +1,11 @@
 #!/usr/bin/python
-from collections import namedtuple
-from turtle import pos
 import rospy as rp
 import numpy as np
 import quaternion
 
 import threading
 
-from Mag_Eng_DisEng_fns import Mag
+from magnet_control import MagnetControl
 
 from geometry_msgs.msg import Vector3
 from mavros_msgs.msg import RCIn
@@ -26,9 +24,9 @@ class StateMachineNode():
         self.rate = rate
 
         # Magnet control variables
-        self.sensor_magnet_on = Mag(14)
-        self.sensor_magnet_off = Mag(15)
-        self.drone_magnet = Mag(4)
+        self.drone_magnet = MagnetControl(4)
+        self.sensor_magnet_on = MagnetControl(14)
+        self.sensor_magnet_off = MagnetControl(15)
 
         # Sensor deployment point relative to marker
         self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.18],
@@ -87,8 +85,8 @@ class StateMachineNode():
             '/deployed_setpoint', Vector3, queue_size=1, latch=True)
 
         rp.loginfo('Engaging drone magnet and disengaging sensor magnet')
-        self.drone_magnet.dr_Magengage()
-        self.sensor_magnet_off.Sn_Magdisengage()
+        self.drone_magnet.droneMagnetEngage()
+        self.sensor_magnet_off.switchMagnet()
 
         t = threading.Thread(target=self.missionControl())
         t.start()
@@ -257,11 +255,11 @@ class StateMachineNode():
             dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
             dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
             dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
-            do < 0.075
+            do < 0.1
 
         return pose_condition
 
-    def deployedPointwrtMarker(self,):
+    def publishDeployedPosition(self,):
         H_world_deployed = np.identity(4)
         H_world_deployed[0][3] = self.drone_position[0]
         H_world_deployed[1][3] = self.drone_position[1]
@@ -281,19 +279,11 @@ class StateMachineNode():
 
         self.deployed_setpoint_pub.publish(deployed_msg)
 
-        rp.loginfo('Sensor deployed wrt Marker at: {}, {}, {}'.format(
+        rp.loginfo('Sensor deployed wrt the marker at: {}, {}, {}'.format(
             H_marker_deployed[0, 3],
             H_marker_deployed[1, 3],
             H_marker_deployed[2, 3]
         ))
-
-        f = open('deployed_wrtMarker.txt', 'w')
-        f.write('Sensor deployed wrt Marker at: {}, {}, {}'.format(
-            H_marker_deployed[0, 3],
-            H_marker_deployed[1, 3],
-            H_marker_deployed[2, 3]
-        ))
-        f.close()
 
     """
        State Machine main function
@@ -332,8 +322,8 @@ class StateMachineNode():
             if pose_condition and dist_condition:
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
-                self.sensor_magnet_on.Sn_Magengage()
-                self.deployedPointwrtMarker()
+                self.sensor_magnet_on.switchMagnet()
+                self.publishDeployedPosition()
                 rp.loginfo('Moving to check if the sensor is attached')
                 self.mission_step += 1
                 self.publish_setpoint = True
@@ -363,9 +353,9 @@ class StateMachineNode():
 
             # Check position and required force
             if pose_condition and dist_condition:
-                self.deployedPointwrtMarker()
+                self.publishDeployedPosition()
                 rp.loginfo('Disengaging drone magnet')
-                self.drone_magnet.dr_Magdisengage()
+                self.drone_magnet.droneMagnetDisengage()
                 rp.loginfo('Sensor deployed')
                 rp.loginfo('Moving away from the structure')
                 self.in_contact = False
@@ -378,7 +368,7 @@ class StateMachineNode():
                 rp.logwarn(
                     'More than 20 seconds have passed since started trying to deploy. Move back and try again')
                 rp.loginfo('Disengaging sensor magnet')
-                self.sensor_magnet_off.Sn_Magdisengage()
+                self.sensor_magnet_off.switchMagnet()
                 self.mission_step -= 1
                 self.publish_setpoint = True
 
@@ -387,7 +377,7 @@ class StateMachineNode():
                 rp.logwarn(
                     'Drone is closer than it should be. Move back and try again')
                 rp.loginfo('Disengaging sensor magnet')
-                self.sensor_magnet_off.Sn_Magdisengage()
+                self.sensor_magnet_off.switchMagnet()
                 self.mission_step -= 1
                 self.publish_setpoint = True
 

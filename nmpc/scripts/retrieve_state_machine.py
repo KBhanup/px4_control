@@ -1,13 +1,11 @@
 #!/usr/bin/python
-from collections import namedtuple
-from turtle import pos
 import rospy as rp
 import numpy as np
 import quaternion
 
 import threading
 
-from Mag_Eng_DisEng_fns import Mag
+from magnet_control import MagnetControl
 
 from geometry_msgs.msg import Vector3
 from mavros_msgs.msg import RCIn
@@ -26,15 +24,15 @@ class StateMachineNode():
         self.rate = rate
 
         # Magnet control variables
-        self.sensor_magnet_on = Mag(14)
-        self.sensor_magnet_off = Mag(15)
-        self.drone_magnet = Mag(4)
+        self.drone_magnet = MagnetControl(4)
+        self.sensor_magnet_on = MagnetControl(14)
+        self.sensor_magnet_off = MagnetControl(15)
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.18],  # Deployed_x wrt marker
-                                           # Deployed_y wrt marker
-                                           [0.0, 1.0, 0.0,  0.00],
-                                           # Deployed_z wrt marker
+        deployed_x = 0.0
+        deployed_y = 0.0
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, deployed_x],
+                                           [0.0, 1.0, 0.0, deployed_y],
                                            [0.0, 0.0, 1.0,  0.00],
                                            [0.0, 0.0, 0.0,  1.00]])
         # When the drone with the sensor are in contact with the ceiling, the distance
@@ -89,7 +87,7 @@ class StateMachineNode():
             '/deployed_setpoint', Vector3, queue_size=1, latch=True)
 
         rp.loginfo('Disengaging drone magnet')
-        self.drone_magnet.dr_Magdisengage()
+        self.drone_magnet.droneMagnetDisengage()
 
         t = threading.Thread(target=self.missionControl())
         t.start()
@@ -258,43 +256,9 @@ class StateMachineNode():
             dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
             dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
             dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
-            do < 0.075
+            do < 0.1
 
         return pose_condition
-
-    def deployedPointwrtMarker(self,):
-        H_world_deployed = np.identity(4)
-        H_world_deployed[0][3] = self.drone_position[0]
-        H_world_deployed[1][3] = self.drone_position[1]
-        H_world_deployed[2][3] = self.drone_position[2] + 0.25
-        H_world_deployed[0:3, 0:3] = quaternion.as_rotation_matrix(
-            self.drone_att)
-
-        H_marker_world = np.linalg.inv(self.H_world_marker)
-
-        # Transform setpoint to Marker's frame
-        H_marker_deployed = np.matmul(H_marker_world, H_world_deployed)
-
-        deployed_msg = Vector3()
-        deployed_msg.x = H_marker_deployed[0, 3]
-        deployed_msg.y = H_marker_deployed[1, 3]
-        deployed_msg.z = H_marker_deployed[2, 3]
-
-        self.deployed_setpoint_pub.publish(deployed_msg)
-
-        rp.loginfo('Sensor deployed wrt Marker at: {}, {}, {}'.format(
-            H_marker_deployed[0, 3],
-            H_marker_deployed[1, 3],
-            H_marker_deployed[2, 3]
-        ))
-
-        f = open('deployed_wrtMarker.txt', 'w')
-        f.write('Sensor deployed wrt Marker at: {}, {}, {}'.format(
-            H_marker_deployed[0, 3],
-            H_marker_deployed[1, 3],
-            H_marker_deployed[2, 3]
-        ))
-        f.close()
 
     """
        State Machine main function
@@ -332,9 +296,8 @@ class StateMachineNode():
             # Check position and required force
             if pose_condition and dist_condition:
                 self.in_contact = True
-                self.drone_magnet.dr_Magengage()
-                rp.loginfo('Engaged Drone magnet')
-                self.deployedPointwrtMarker()
+                rp.loginfo('Engaging drone magnet')
+                self.drone_magnet.droneMagnetEngage()
                 rp.loginfo('Moving to check if the sensor is attached')
                 self.mission_step += 1
                 self.publish_setpoint = True
@@ -364,10 +327,9 @@ class StateMachineNode():
 
             # Check position and required force
             if pose_condition and dist_condition:
-                self.deployedPointwrtMarker()
-                self.sensor_magnet_off.Sn_Magdisengage()
-                rp.loginfo('Disengaging Sensor magnet')
-                rp.loginfo('Sensor Retrived')
+                rp.loginfo('Disengaging sensor magnet')
+                self.sensor_magnet_off.switchMagnet()
+                rp.loginfo('Sensor retrieved')
                 rp.loginfo('Moving away from the structure')
                 self.in_contact = False
                 self.wt_sensor = True
@@ -378,9 +340,10 @@ class StateMachineNode():
             elif dt.secs > 20:
                 rp.logwarn(
                     'More than 20 seconds have passed since started trying to Retrive. Move back and try again')
-                rp.loginfo('Disengaging Drone magnet')
-                self.drone_magnet.dr_Magdisengage()
-                self.mission_step -= 1
+                rp.loginfo('Disengaging drone magnet')
+                self.drone_magnet.droneMagnetDisengage()
+                self.in_contact = False
+                self.mission_step -= 2
                 self.publish_setpoint = True
 
             # Check if vertical position too close to setpoint
@@ -388,8 +351,9 @@ class StateMachineNode():
                 rp.logwarn(
                     'Drone is closer than it should be. Move back and try again')
                 rp.loginfo('Disengaging Drone magnet')
-                self.drone_magnet.dr_Magdisengage()
-                self.mission_step -= 1
+                self.drone_magnet.droneMagnetDisengage()
+                self.in_contact = False
+                self.mission_step -= 2
                 self.publish_setpoint = True
 
         # Move away from retrieval position
