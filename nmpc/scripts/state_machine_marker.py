@@ -52,8 +52,9 @@ class StateMachineNode():
         # Mission State
         self.in_contact = False
         self.wt_sensor = True
-        self.mission_bttn = 0
+
         self.mission_step = 0
+        self.mission_bttn = 0
         self.z_distances = [-0.75, -0.15, -0.40, -0.75]
         # setpoint: [x, y, z, orientation, z_offset, disturbance]
         self.mission_setpoints = [[0.0, 0.0, 0.0, 0.0, 0.05, None],

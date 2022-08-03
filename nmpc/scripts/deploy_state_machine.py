@@ -38,7 +38,7 @@ class StateMachineNode():
         # When the drone with the sensor are in contact with the ceiling, the distance
         # from the ceiling is around -0.25m. For deploying set the distance to +-0.15
         # so that disturbances are properly formed
-        self.z_distances = [-0.75, -0.10, -0.40, -0.75]
+        self.z_distances = [-0.75, -0.15, -0.40, -0.75]
 
         # Marker's pose used for setpoints
         self.marker_position = None
@@ -315,17 +315,18 @@ class StateMachineNode():
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)
 
             if pose_condition:
+                rp.loginfo('Approached structure. Moving to deploy sensor')
                 self.mission_step += 1
                 self.publish_setpoint = True
 
         # Try to deploy sensor
         elif self.mission_step == 1:
-            dt = self.mission_start_t - rp.Time.now()
+            dt = rp.Time.now() - self.mission_start_t
 
             # Check time passed
-            if dt.secs > 10:
-                rp.loginfo(
-                    'More than 10 seconds have passed since started trying to deploy. Move back and try again')
+            if dt.secs > 20:
+                rp.logwarn(
+                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
                 self.mission_step -= 1
                 self.publish_setpoint = True
 
@@ -347,20 +348,19 @@ class StateMachineNode():
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
                 self.sensor_magnet_on.Sn_Magengage()
-
                 self.deployedPointwrtMarker()
-
+                rp.loginfo('Moving to check if the sensor is attached')
                 self.mission_step += 1
                 self.publish_setpoint = True
 
         # Check if sensor is attached
         elif self.mission_step == 2:
-            dt = self.mission_start_t - rp.Time.now()
+            dt = rp.Time.now() - self.mission_start_t
 
             # Check time passed
-            if dt.secs > 10:
-                rp.loginfo(
-                    'More than 10 seconds have passed since started trying to deploy. Move back and try again')
+            if dt.secs > 20:
+                rp.logwarn(
+                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
                 rp.loginfo('Disengaging sensor magnet')
                 self.sensor_magnet_off.Sn_Magdisengage()
                 self.mission_step -= 1
@@ -383,16 +383,18 @@ class StateMachineNode():
                 self.mission_setpoints[self.mission_step]['required_force'] + self.disturbances[2]) > 1.4
 
             if pose_condition and dist_condition:
+                self.deployedPointwrtMarker()
                 rp.loginfo('Disengaging drone magnet')
                 self.drone_magnet.dr_Magdisengage()
                 rp.loginfo('Sensor deployed')
+                rp.loginfo('Moving away from the structure')
                 self.in_contact = False
                 self.wt_sensor = False
                 self.mission_step += 1
                 self.publish_setpoint = True
 
         # Move away from deployment position
-        else:
+        elif self.mission_step == 3:
             # Check position
             dx, dy, dz, do = self.getOffsets()
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)

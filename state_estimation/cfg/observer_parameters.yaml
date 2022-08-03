@@ -13,11 +13,11 @@ Q_v: 0.01
 Q_dq: 0.01
 Q_fd: 0.01
 Q_rb: 0.01
-Q_mp: 1.0e-5
-Q_mdq: 1.0e-5
+Q_mp: 1.0e-6
+Q_mdq: 1.0e-6
 
 # Pose covariance
-R_pose_p: [1.0e-5, 1.0e-5, 1.0e-5]
+R_pose_p: [1.0e-4, 1.0e-4, 1.0e-4]
 R_pose_q: [1.0e-5, 1.0e-5, 1.0e-5, 1.0e-5]
 
 # Odometry covariance
