@@ -29,8 +29,8 @@ class StateMachineNode():
         self.sensor_magnet_off = MagnetControl(15)
 
         # Sensor deployment point relative to marker
-        deployed_x = 0.0
-        deployed_y = 0.0
+        deployed_x = -0.15
+        deployed_y = 0.02
         self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, deployed_x],
                                            [0.0, 1.0, 0.0, deployed_y],
                                            [0.0, 0.0, 1.0,  0.00],
@@ -62,9 +62,9 @@ class StateMachineNode():
         self.mission_start_t = None
         self.mission_step = 0
         self.mission_setpoints = [{'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.03, 'ver_offset': 0.05, 'required_force': None},
+                                   'hor_offset': 0.02, 'ver_offset': 0.05, 'required_force': None},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.03, 'ver_offset': 0.20, 'required_force': -0.7},
+                                   'hor_offset': 0.02, 'ver_offset': 0.20, 'required_force': -0.7},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
                                    'hor_offset': 1.00, 'ver_offset': 0.20, 'required_force':  0.7},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,

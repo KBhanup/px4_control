@@ -31,10 +31,10 @@ class MagnetControl:
 
     def droneMagnetDisengage(self,):
         # Send disengage signal
-        self.fakePWMSignal(0.002)
+        self.fakePWMSignal(0.001)
 
         # Send neutral signal
-        self.fakePWMSignal(0.001)
+        self.fakePWMSignal(0.0015)
 
     # For sensor magnet
     def switchMagnet(self,):

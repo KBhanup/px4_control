@@ -1,15 +1,16 @@
 import time
 
-from Mag_Eng_DisEng_fns import Mag
+from magnet_control import MagnetControl
+
+drone_magnet      =  MagnetControl(4)
+sensor_magnet_on  =  MagnetControl(14)
+sensor_magnet_off =  MagnetControl(15)
 
 
-Sensor_MagON = Mag(14)
-Sensor_MagOFF =Mag(15)
-Drone_Mag = Mag(4)
 
-#Sensor_MagON.Sn_Magengage()
-Sensor_MagOFF.Sn_Magdisengage()
+#sensor_magnet_on.switchMagnet()
+sensor_magnet_off.switchMagnet()
 
-#Drone_Mag.dr_Magengage()
-#Drone_Mag.dr_Magdisengage()
+#drone_magnet.droneMagnetEngage()
+#drone_magnet.droneMagnetDisengage()
 

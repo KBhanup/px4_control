@@ -5,8 +5,8 @@
 
 
     <!-- Start STag bundle tracking -->
-    <include file="$(find stag_ros)/launch/stagNodelet.launch"/>
-    <!--include file="$(find stag_ros)/launch/stagNodeletnmpc_bundle7-3.launch"/-->
+    <!--include file="$(find stag_ros)/launch/stagNodelet.launch"/-->
+    <include file="$(find stag_ros)/launch/stagNodeletnmpc_bundle7-3.launch"/>
 
 
     
