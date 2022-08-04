@@ -452,10 +452,13 @@ void StateObserver::missionStateCallback(
   bool wt_sensor_new = msg.wt_sensor.data;
 
   if (wt_sensor_new != wt_sensor) {
-    if (wt_sensor_new)
+    if (wt_sensor_new) {
       k_thrust = k_thrust_wt_sensor;
-    else
+      ROS_INFO("Observer switched to model with sensor");
+    } else {
       k_thrust = k_thrust_wo_sensor;
+      ROS_INFO("Observer switched to model without sensor");
+    }
     wt_sensor = wt_sensor_new;
   }
 }

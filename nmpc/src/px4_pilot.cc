@@ -248,6 +248,7 @@ void PX4Pilot::missionStateCallback(const px4_control_msgs::MissionState &msg) {
       } else {
         nmpc_controller->setModelParameters(model_params_wt_sensor);
       }
+      ROS_INFO("NMPC switched to model with sensor");
     } else {
       if (controller_enabled) {
         controller_enabled = false;
@@ -256,6 +257,7 @@ void PX4Pilot::missionStateCallback(const px4_control_msgs::MissionState &msg) {
       } else {
         nmpc_controller->setModelParameters(model_params_wo_sensor);
       }
+      ROS_INFO("NMPC switched to model without sensor");
     }
     wt_sensor = wt_sensor_new;
   }

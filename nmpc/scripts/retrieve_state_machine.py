@@ -38,7 +38,7 @@ class StateMachineNode():
         # When the drone with the sensor are in contact with the ceiling, the distance
         # from the ceiling is around -0.25m. For deploying set the distance to +-0.15
         # so that disturbances are properly formed
-        self.z_distances = [-0.95, -0.15, -0.40, -0.75]
+        self.z_distances = [-0.75, -0.15, -0.40, -0.75]
 
         # Marker's pose used for setpoints
         self.marker_position = None
@@ -162,9 +162,6 @@ class StateMachineNode():
                     self.calculateMissionSetpoints()  # (self.H_world_marker)
 
     def rcCallback(self, msg):
-        # Check RC button that specifies mission type
-        # Deploy: Down - 2006
-        # Retrieve: Top - 982
         if self.mission_bttn != msg.channels[9]:
             self.mission_bttn = msg.channels[9]
             self.in_mission = True
