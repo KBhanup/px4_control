@@ -16,6 +16,7 @@
 #include <std_srvs/SetBool.h>
 
 #include "px4_control_msgs/DroneStateMarker.h"
+#include "px4_control_msgs/MissionState.h"
 #include "px4_control_msgs/Setpoint.h"
 #include "px4_control_msgs/Trajectory.h"
 
@@ -40,6 +41,7 @@ class PX4Pilot {
   ros::Subscriber mavros_rc_sub;
   ros::Subscriber drone_state_sub;
   ros::Subscriber trajectory_sub;
+  ros::Subscriber mission_state_sub;
 
   // ROS Publishers
   ros::Publisher att_control_pub;
@@ -57,6 +59,7 @@ class PX4Pilot {
   void mavrosRCCallback(const mavros_msgs::RCIn::ConstPtr &msg);
   void droneStateCallback(const px4_control_msgs::DroneStateMarker &msg);
   void trajectoryCallback(const px4_control_msgs::Trajectory &msg);
+  void missionStateCallback(const px4_control_msgs::MissionState &msg);
 
   // Service Callbacks
   bool enableControllerServCallback(std_srvs::SetBool::Request &req,
@@ -97,16 +100,19 @@ class PX4Pilot {
   bool controller_enabled;
   bool allow_offboard;
   bool trajectory_loaded;
+  bool in_contact;
+  bool wt_sensor;
   ros::Time last_state_time;
 
-  // Backup controller gains
-  double x_kp, x_kv;
-  double y_kp, y_kv;
-  double z_kp, z_kv;
+  // Backup PIDs
+  PIDController *x_pid;
+  PIDController *y_pid;
+  PIDController *z_pid;
   PIDController *o_pid;
-  std::vector<double> o_pid_k;
+  std::vector<double> x_pid_k, y_pid_k, z_pid_k, o_pid_k;
 
-  model_parameters model_params;
+  model_parameters model_params_wt_sensor;
+  model_parameters model_params_wo_sensor;
   trajectory_setpoint drone_state;
   std::vector<double> disturbances, weights;
   std::vector<double> input_lower_bound, input_upper_bound;

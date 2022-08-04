@@ -1,0 +1,16 @@
+<launch>
+    
+    <!-- Start Usb Camera-->
+    <include file="$(find usb_camera)/launch/logi_cam_640x480.launch"/>
+
+
+    <!-- Start STag bundle tracking -->
+    <!--include file="$(find stag_ros)/launch/stagNodelet.launch"/-->
+    <include file="$(find stag_ros)/launch/stagNodeletnmpc_bundle7-3.launch"/>
+
+
+    
+    <!-- Start maker/pose script -->
+    <!--node pkg="px4_with_vision-main" type="read_bund2pose.py" name="pub_markerpose" output="screen"/-->
+
+</launch>

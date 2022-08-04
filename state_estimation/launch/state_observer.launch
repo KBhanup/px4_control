@@ -1,6 +1,6 @@
 <launch>
   <node name="state_observer_node" pkg="state_estimation" type="state_observer_node" output="screen" required="true">
-    <rosparam command="load" file="$(find state_estimation)/cfg/drone_dic_parameters.yaml"/>
+    <rosparam command="load" file="$(find state_estimation)/cfg/magdrone_parameters.yaml"/>
     <rosparam command="load" file="$(find state_estimation)/cfg/observer_parameters.yaml"/>
   </node>
 </launch>

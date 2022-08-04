@@ -10,6 +10,14 @@
 
 namespace px4_ctrl {
 
+template <class num>
+inline num clipValue(const num &value, const num &l_bound, const num &u_bound) {
+  num clipped_value = value < l_bound ? l_bound : value;
+  clipped_value = clipped_value > u_bound ? u_bound : clipped_value;
+
+  return clipped_value;
+}
+
 inline int loadSingleParameter(const ros::NodeHandle &nh,
                                const std::string &key,
                                const int &default_value) {
@@ -52,6 +60,7 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
   controller_enabled = false;
   has_drone_state = false;
   trajectory_loaded = false;
+  in_contact = false;
 
   current_reference_trajectory.clear();
   weights.clear();
@@ -63,10 +72,11 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
 
   // Load parameters
   loadParameters();
+  wt_sensor = true;
 
   // Initialize acados NMPC
   nmpc_controller = new AcadosNMPC();
-  if (nmpc_controller->initializeController(model_params, input_lower_bound,
+  if (nmpc_controller->initializeController(model_params_wt_sensor, input_lower_bound,
                                             input_upper_bound) &&
       nmpc_controller->setWeighingMatrix(weights)) {
     ROS_INFO("NMPC Initialized\n");
@@ -75,7 +85,10 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
     exit(1);
   }
 
-  // Initialize orientation backup controller
+  // Initialize backup PIDs
+  x_pid = new PIDController(x_pid_k[0], x_pid_k[1], x_pid_k[2], 1);
+  y_pid = new PIDController(y_pid_k[0], y_pid_k[1], y_pid_k[2], 1);
+  z_pid = new PIDController(z_pid_k[0], z_pid_k[1], z_pid_k[2], 1);
   o_pid = new PIDController(o_pid_k[0], o_pid_k[1], o_pid_k[2], 1);
 
   // Setup Subscribers
@@ -87,6 +100,8 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
       nh.subscribe("/drone_state", 1, &PX4Pilot::droneStateCallback, this);
   trajectory_sub =
       nh.subscribe("/drone_trajectory", 1, &PX4Pilot::trajectoryCallback, this);
+  mission_state_sub =
+      nh.subscribe("/mission_state", 1, &PX4Pilot::missionStateCallback, this);
 
   // Setup Publishers
   att_control_pub = nh.advertise<mavros_msgs::AttitudeTarget>(
@@ -174,9 +189,15 @@ void PX4Pilot::droneStateCallback(
   drone_state.q_roll = r;
 
   disturbances.clear();
-  disturbances.push_back(msg.disturbances.x);
-  disturbances.push_back(msg.disturbances.y);
-  disturbances.push_back(msg.disturbances.z);
+  if (in_contact) {
+    disturbances.push_back(clipValue(msg.disturbances.x, -0.5, 0.5));
+    disturbances.push_back(clipValue(msg.disturbances.y, -0.5, 0.5));
+    disturbances.push_back(clipValue(msg.disturbances.z, -0.5, 0.5));
+  } else {
+    disturbances.push_back(msg.disturbances.x);
+    disturbances.push_back(msg.disturbances.y);
+    disturbances.push_back(msg.disturbances.z);
+  }
 
   last_state_time = msg.header.stamp;
   has_drone_state = !has_drone_state ? true : has_drone_state;
@@ -200,6 +221,7 @@ void PX4Pilot::trajectoryCallback(const px4_control_msgs::Trajectory &msg) {
 
     current_reference_trajectory.push_back(setpoint);
   }
+
   // Stop controller while loading the new trajectory
   if (controller_enabled) {
     controller_enabled = false;
@@ -210,6 +232,35 @@ void PX4Pilot::trajectoryCallback(const px4_control_msgs::Trajectory &msg) {
 
   ROS_INFO("Trajectory loaded");
   trajectory_loaded = true;
+}
+
+void PX4Pilot::missionStateCallback(const px4_control_msgs::MissionState &msg) {
+  in_contact = msg.in_contact.data;
+
+  bool wt_sensor_new = msg.wt_sensor.data;
+
+  if (wt_sensor_new != wt_sensor) {
+    if (wt_sensor_new) {
+      if (controller_enabled) {
+        controller_enabled = false;
+        nmpc_controller->setModelParameters(model_params_wt_sensor);
+        controller_enabled = true;
+      } else {
+        nmpc_controller->setModelParameters(model_params_wt_sensor);
+      }
+      ROS_INFO("NMPC switched to model with sensor");
+    } else {
+      if (controller_enabled) {
+        controller_enabled = false;
+        nmpc_controller->setModelParameters(model_params_wo_sensor);
+        controller_enabled = true;
+      } else {
+        nmpc_controller->setModelParameters(model_params_wo_sensor);
+      }
+      ROS_INFO("NMPC switched to model without sensor");
+    }
+    wt_sensor = wt_sensor_new;
+  }
 }
 
 bool PX4Pilot::enableControllerServCallback(std_srvs::SetBool::Request &req,
@@ -238,20 +289,35 @@ void PX4Pilot::loadParameters() {
   // Create private nodehandle to load parameters
   ros::NodeHandle nh_pvt("~");
 
-  // Controller parameters
-  model_params.t_pitch = loadSingleParameter(nh_pvt, "t_pitch", 1.0);
-  model_params.k_pitch = loadSingleParameter(nh_pvt, "k_pitch", 1.0);
-  model_params.t_roll = loadSingleParameter(nh_pvt, "t_roll", 1.0);
-  model_params.k_roll = loadSingleParameter(nh_pvt, "k_roll", 1.0);
-  model_params.k_thrust = loadSingleParameter(nh_pvt, "k_thrust", 1.0);
-  model_params.gravity = loadSingleParameter(nh_pvt, "gravity", -9.8066);
+  // Controller parameters with sensor
+  model_params_wt_sensor.t_pitch = loadSingleParameter(nh_pvt, "t_pitch", 1.0);
+  model_params_wt_sensor.k_pitch = loadSingleParameter(nh_pvt, "k_pitch", 1.0);
+  model_params_wt_sensor.t_roll = loadSingleParameter(nh_pvt, "t_roll", 1.0);
+  model_params_wt_sensor.k_roll = loadSingleParameter(nh_pvt, "k_roll", 1.0);
+  model_params_wt_sensor.k_thrust =
+      loadSingleParameter(nh_pvt, "k_thrust_wt_sensor", 1.0);
+  model_params_wt_sensor.gravity =
+      loadSingleParameter(nh_pvt, "gravity", -9.8066);
 
   std::vector<double> vector_parameter{0.0, 0.0, 0.0};
   std::vector<double> damping_coef =
       loadVectorParameter(nh_pvt, "damping_coef", vector_parameter);
-  model_params.damp_x = damping_coef[0];
-  model_params.damp_y = damping_coef[1];
-  model_params.damp_z = damping_coef[2];
+  model_params_wt_sensor.damp_x = damping_coef[0];
+  model_params_wt_sensor.damp_y = damping_coef[1];
+  model_params_wt_sensor.damp_z = damping_coef[2];
+
+  // Controller parameters without sensor
+  model_params_wo_sensor.t_pitch = model_params_wt_sensor.t_pitch;
+  model_params_wo_sensor.k_pitch = model_params_wt_sensor.k_pitch;
+  model_params_wo_sensor.t_roll = model_params_wt_sensor.t_roll;
+  model_params_wo_sensor.k_roll = model_params_wt_sensor.k_roll;
+  model_params_wo_sensor.k_thrust =
+      loadSingleParameter(nh_pvt, "k_thrust_wo_sensor", 1.0);
+  model_params_wo_sensor.gravity = model_params_wt_sensor.gravity;
+
+  model_params_wo_sensor.damp_x = model_params_wt_sensor.damp_x;
+  model_params_wo_sensor.damp_y = model_params_wt_sensor.damp_y;
+  model_params_wo_sensor.damp_z = model_params_wt_sensor.damp_z;
 
   // Controller weights
   std::vector<double> pos_w =
@@ -265,17 +331,9 @@ void PX4Pilot::loadParameters() {
   double roll_cmd_w = loadSingleParameter(nh_pvt, "roll_cmd_w", 100.0);
   double thrust_cmd_w = loadSingleParameter(nh_pvt, "thrust_cmd_w", 100.0);
 
-  std::vector<double> default_gains{0.0, 0.0};
-  std::vector<double> gains;
-  gains = loadVectorParameter(nh_pvt, "x_gain", default_gains);
-  x_kp = gains[0];
-  x_kv = gains[1];
-  gains = loadVectorParameter(nh_pvt, "y_gain", default_gains);
-  y_kp = gains[0];
-  y_kv = gains[1];
-  gains = loadVectorParameter(nh_pvt, "z_gain", default_gains);
-  z_kp = gains[0];
-  z_kv = gains[1];
+  x_pid_k = loadVectorParameter(nh_pvt, "x_pid", vector_parameter);
+  y_pid_k = loadVectorParameter(nh_pvt, "y_pid", vector_parameter);
+  z_pid_k = loadVectorParameter(nh_pvt, "z_pid", vector_parameter);
   o_pid_k = loadVectorParameter(nh_pvt, "o_pid", vector_parameter);
 
   // Controller input constraints
@@ -401,39 +459,51 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
         std::vector<double> ctrl;
         if (nmpc_controller->getCommands(ctrl)) {
           tf2::Quaternion q;
-          q.setRPY(ctrl[2], ctrl[1], current_yaw);
+          if (in_contact) {
+            q.setRPY(0.0, 0.0, current_yaw);
+          } else {
+            q.setRPY(ctrl[2], ctrl[1], current_yaw);
+          }
           q.normalize();
 
           att_cmd.orientation.x = q[0];
           att_cmd.orientation.y = q[1];
           att_cmd.orientation.z = q[2];
           att_cmd.orientation.w = q[3];
-          att_cmd.body_rate.z = ctrl[0];
+          att_cmd.body_rate.z = in_contact ? 0.0 : ctrl[0];
           att_cmd.thrust = ctrl[3] < 0.1 ? 0.1 : ctrl[3];
 
           att_cmd.header.stamp = ros::Time::now();
           att_control_pub.publish(att_cmd);
         } else {
-          ROS_ERROR("NMPC failed. Using backup controller");
+          ROS_ERROR("NMPC failed to return command. Using Backup Velocity PID");
           trajectory_setpoint current_setpoint =
               nmpc_controller->getCurrentSetpoint();
+          double error_time = ros::Time::now().toSec();
 
           double syaw = sin(current_yaw);
           double cyaw = cos(current_yaw);
-          double d_px = current_setpoint.pos_x - drone_state.pos_x;
-          double d_vx = current_setpoint.vel_x - drone_state.vel_x;
-          double d_py = current_setpoint.pos_y - drone_state.pos_y;
-          double d_vy = current_setpoint.vel_y - drone_state.vel_y;
-          double d_pz = current_setpoint.pos_z - drone_state.pos_z;
-          double d_vz = current_setpoint.vel_z - drone_state.vel_z;
+          double dx = current_setpoint.pos_x - drone_state.pos_x;
+          double dy = current_setpoint.pos_y - drone_state.pos_y;
+          double dz = current_setpoint.pos_z - drone_state.pos_z;
 
-          vel_cmd.velocity.x = x_kp * (cyaw * d_px - syaw * d_py) +
-                               x_kv * (cyaw * d_vx - syaw * d_vy);
-          vel_cmd.velocity.y = y_kp * (syaw * d_px + cyaw * d_py) +
-                               y_kv * (syaw * d_vx + cyaw * d_vy);
-          vel_cmd.velocity.z = z_kp * d_pz + z_kv * d_vz;
-          vel_cmd.yaw_rate = o_pid->getControl(
-              current_setpoint.q_yaw - current_yaw, error_time);
+          vel_cmd.velocity.x =
+              in_contact ? 0.0
+                         : clipValue(x_pid->getControl(cyaw * dx - syaw * dy,
+                                                       error_time),
+                                     -1.0, 1.0);
+          vel_cmd.velocity.y =
+              in_contact ? 0.0
+                         : clipValue(y_pid->getControl(syaw * dx + cyaw * dy,
+                                                       error_time),
+                                     -1.0, 1.0);
+          vel_cmd.velocity.z =
+              clipValue(z_pid->getControl(dz, error_time), -1.0, 1.0);
+          vel_cmd.yaw_rate =
+              in_contact
+                  ? 0.0
+                  : o_pid->getControl(current_setpoint.q_yaw - current_yaw,
+                                      error_time);
 
           vel_cmd.header.stamp = ros::Time::now();
           vel_control_pub.publish(vel_cmd);
@@ -445,6 +515,10 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
         vel_cmd.velocity.z = 0.0;
         vel_cmd.yaw_rate = 0.0;
         vel_cmd.header.stamp = ros::Time::now();
+        vel_cmd.velocity.x = 0.0;
+        vel_cmd.velocity.y = 0.0;
+        vel_cmd.velocity.z = 0.0;
+        vel_cmd.yaw_rate = 0.0;
         vel_control_pub.publish(vel_cmd);
       }
     }

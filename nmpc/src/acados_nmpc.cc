@@ -62,27 +62,7 @@ bool AcadosNMPC::initializeController(
   ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbx",
                                 idxbx0);
 
-  // Set parameters
-  acados_model_parameters = new double[DRONE_W_DISTURBANCES_NP];
-  acados_model_parameters[0] = model_params.t_roll;     // Roll time constant
-  acados_model_parameters[1] = model_params.k_roll;     // Roll gain
-  acados_model_parameters[2] = model_params.t_pitch;    // Pitch time constant
-  acados_model_parameters[3] = model_params.k_pitch;    // Pitch gain
-  acados_model_parameters[4] = model_params.damp_x;     // Damping x
-  acados_model_parameters[5] = model_params.damp_y;     // Damping y
-  acados_model_parameters[6] = model_params.damp_z;     // Damping z
-  acados_model_parameters[7] = 0.0;                     // Disturbance force x
-  acados_model_parameters[8] = 0.0;                     // Disturbance force y
-  acados_model_parameters[9] = 0.0;                     // Disturbance force z
-  acados_model_parameters[10] = model_params.k_thrust;  // Thrust coefficients
-  acados_model_parameters[11] = model_params.gravity;   // Gravity
-
-  hover_thrust = -model_params.gravity / model_params.k_thrust;
-
-  for (int i = 0; i <= DRONE_W_DISTURBANCES_N; i++)
-    drone_w_disturbances_acados_update_params(acados_ocp_capsule, i,
-                                              acados_model_parameters,
-                                              DRONE_W_DISTURBANCES_NP);
+  setModelParameters(model_params);
 
   // Set input constraints
   double lbu[DRONE_W_DISTURBANCES_NU];
@@ -104,6 +84,30 @@ bool AcadosNMPC::initializeController(
                                 DRONE_W_DISTURBANCES_N, "ubu", ubu);
 
   return true;
+}
+
+void AcadosNMPC::setModelParameters(const model_parameters &model_params) {
+  // Set parameters
+  acados_model_parameters = new double[DRONE_W_DISTURBANCES_NP];
+  acados_model_parameters[0] = model_params.t_roll;     // Roll time constant
+  acados_model_parameters[1] = model_params.k_roll;     // Roll gain
+  acados_model_parameters[2] = model_params.t_pitch;    // Pitch time constant
+  acados_model_parameters[3] = model_params.k_pitch;    // Pitch gain
+  acados_model_parameters[4] = model_params.damp_x;     // Damping x
+  acados_model_parameters[5] = model_params.damp_y;     // Damping y
+  acados_model_parameters[6] = model_params.damp_z;     // Damping z
+  acados_model_parameters[7] = 0.0;                     // Disturbance force x
+  acados_model_parameters[8] = 0.0;                     // Disturbance force y
+  acados_model_parameters[9] = 0.0;                     // Disturbance force z
+  acados_model_parameters[10] = model_params.k_thrust;  // Thrust coefficients
+  acados_model_parameters[11] = model_params.gravity;   // Gravity
+
+  hover_thrust = -model_params.gravity / model_params.k_thrust;
+
+  for (int i = 0; i <= DRONE_W_DISTURBANCES_N; i++)
+    drone_w_disturbances_acados_update_params(acados_ocp_capsule, i,
+                                              acados_model_parameters,
+                                              DRONE_W_DISTURBANCES_NP);
 }
 
 bool AcadosNMPC::setWeighingMatrix(const std::vector<double> &weights) {

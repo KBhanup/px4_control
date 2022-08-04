@@ -24,7 +24,7 @@ R_pose_q: [1.0e-4, 1.0e-4, 1.0e-4, 1.0e-4]
 R_odom_v: [0.04, 0.04, 0.04]
 
 # Marker covariance
-R_marker_p: [1.0e-4, 1.0e-4, 1.0e-4]
+R_marker_p: [1.0e-3, 1.0e-3, 1.0e-3]
 R_marker_q: [1.0e-3, 1.0e-3, 1.0e-3, 1.0e-3]
 
 # Chi critical values
