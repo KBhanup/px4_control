@@ -28,8 +28,8 @@ thrust_cmd_w: 500
 
 # NMPC input constraints
 # bound -> [yaw_cmd, pitch_cmd, roll_cmd, thrust]
-lbu: [-3.14, -0.628, -0.628, 0.27]
-ubu: [ 3.14,  0.628,  0.628, 0.33]
+lbu: [-0.1571, -0.0942, -0.0942, 0.4478]
+ubu: [ 0.1571,  0.0942,  0.0942, 0.6717]
 
 # Backup PID gains
 x_pid: [1.21, 0.0, 0.2816]
