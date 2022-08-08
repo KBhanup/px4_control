@@ -36,7 +36,7 @@ class StateMachineNode():
         # When the drone with the sensor are in contact with the ceiling, the distance
         # from the ceiling is around -0.25m. For deploying set the distance to +-0.15
         # so that disturbances are properly formed
-        self.z_distances = [-0.75, -0.15, -0.40, -0.75]
+        self.z_distances = [-0.75, -0.45, -0.15, -0.40, -0.75]
 
         # Marker's pose used for setpoints
         self.marker_position = None
@@ -299,7 +299,7 @@ class StateMachineNode():
         # Check all required conditions for each mission point
 
         # Approach structure
-        if self.mission_step == 0:
+        if self.mission_step == 0 or self.mission_step == 1:
             # Check position
             dx, dy, dz, do = self.getOffsets()
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)
@@ -310,7 +310,7 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
         # Try to deploy sensor
-        elif self.mission_step == 1:
+        elif self.mission_step == 2:
             dt = rp.Time.now() - self.mission_start_t
             dx, dy, dz, do = self.getOffsets()
 
@@ -343,7 +343,7 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
         # Check if sensor is attached
-        elif self.mission_step == 2:
+        elif self.mission_step == 3:
             dt = rp.Time.now() - self.mission_start_t
             dx, dy, dz, do = self.getOffsets()
 
@@ -369,20 +369,20 @@ class StateMachineNode():
                     'More than 20 seconds have passed since started trying to deploy. Move back and try again')
                 rp.loginfo('Disengaging sensor magnet')
                 self.sensor_magnet_off.switchMagnet()
-                self.mission_step -= 1
+                self.mission_step -= 2
                 self.publish_setpoint = True
 
-            # Check if vertical position too close to setpoint
-            elif dz < 0.05:
+            # Check if vertical position too close to setpoint or horizontal position too far from setpoint
+            elif dz < 0.05 or dx > 0.1 or dy > 0.1:
                 rp.logwarn(
-                    'Drone is closer than it should be. Move back and try again')
+                    'Drone\'s position is problematic. Move back and try again')
                 rp.loginfo('Disengaging sensor magnet')
                 self.sensor_magnet_off.switchMagnet()
-                self.mission_step -= 1
+                self.mission_step -= 2
                 self.publish_setpoint = True
 
         # Move away from deployment position
-        elif self.mission_step == 3:
+        elif self.mission_step == 4:
             # Check position
             dx, dy, dz, do = self.getOffsets()
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)

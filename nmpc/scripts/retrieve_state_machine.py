@@ -38,7 +38,7 @@ class StateMachineNode():
         # When the drone with the sensor are in contact with the ceiling, the distance
         # from the ceiling is around -0.25m. For deploying set the distance to +-0.15
         # so that disturbances are properly formed
-        self.z_distances = [-0.75, -0.15, -0.40, -0.75]
+        self.z_distances = [-0.60, -0.15, -0.40, -0.75]
 
         # Marker's pose used for setpoints
         self.marker_position = None
@@ -343,10 +343,10 @@ class StateMachineNode():
                 self.mission_step -= 2
                 self.publish_setpoint = True
 
-            # Check if vertical position too close to setpoint
-            elif dz < 0.05:
+            # Check if vertical position too close to setpoint or horizontal position too far from setpoint
+            elif dz < 0.05 or dx > 0.1 or dy > 0.1:
                 rp.logwarn(
-                    'Drone is closer than it should be. Move back and try again')
+                    'Drone\'s position is problematic. Move back and try again')
                 rp.loginfo('Disengaging Drone magnet')
                 self.drone_magnet.droneMagnetDisengage()
                 self.in_contact = False
