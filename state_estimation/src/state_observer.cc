@@ -443,6 +443,7 @@ void StateObserver::markerCallback(const geometry_msgs::PoseStamped &msg) {
       } else {
         ROS_WARN("Marker measurement was rejected");
       }
+      publishState(msg.header.stamp);
     }
   }
 }
