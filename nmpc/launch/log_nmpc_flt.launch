@@ -16,7 +16,7 @@
 /mavros/local_position/odom
 /mavros/vision_pose/pose
 
-/vrpn_client_node/Mag_Sensorpack/pose
+/vrpn_client_node/Sensorpack/pose
 
 /stag_ros/markers
 /stag_ros/bundles
