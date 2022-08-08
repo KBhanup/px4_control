@@ -3,6 +3,7 @@ project(nmpc)
 
 ## Compile as C++14
 add_compile_options(-std=c++14)
+add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS)
 
 # Option to get acados NMPC time information
 option(TRACK_ACADOS_TIME "Track acados OCP solution time" ON)

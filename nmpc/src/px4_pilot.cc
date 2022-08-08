@@ -76,7 +76,8 @@ PX4Pilot::PX4Pilot(ros::NodeHandle &nh, const double &rate) {
 
   // Initialize acados NMPC
   nmpc_controller = new AcadosNMPC();
-  if (nmpc_controller->initializeController(model_params_wt_sensor) &&
+  if (nmpc_controller->initializeController(model_params_wt_sensor, input_lower_bound,
+                                            input_upper_bound) &&
       nmpc_controller->setWeighingMatrix(weights)) {
     ROS_INFO("NMPC Initialized\n");
   } else {
@@ -226,9 +227,8 @@ void PX4Pilot::trajectoryCallback(const px4_control_msgs::Trajectory &msg) {
     controller_enabled = false;
     nmpc_controller->setTrajectory(current_reference_trajectory);
     controller_enabled = true;
-  } else {
+  } else
     nmpc_controller->setTrajectory(current_reference_trajectory);
-  }
 
   ROS_INFO("Trajectory loaded");
   trajectory_loaded = true;
@@ -335,6 +335,10 @@ void PX4Pilot::loadParameters() {
   y_pid_k = loadVectorParameter(nh_pvt, "y_pid", vector_parameter);
   z_pid_k = loadVectorParameter(nh_pvt, "z_pid", vector_parameter);
   o_pid_k = loadVectorParameter(nh_pvt, "o_pid", vector_parameter);
+
+  // Controller input constraints
+  input_lower_bound = loadVectorParameter(nh_pvt, "lbu", default_gains);
+  input_upper_bound = loadVectorParameter(nh_pvt, "ubu", default_gains);
 
   // Cost function weights
   weights.push_back(pos_w[0]);
@@ -444,6 +448,7 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
       if (controller_enabled && has_drone_state && is_offboard) {
         // Update current state
         double current_yaw;
+        double error_time = ros::Time::now().toSec();
         {  // Lock state mutex
           std::lock_guard<std::mutex> state_guard(*(drone_state_mutex));
           current_yaw = drone_state.q_yaw;
@@ -505,6 +510,10 @@ void PX4Pilot::commandPublisher(const double &pub_rate) {
         }
       } else {
         // Send zero velocity commands so that it can be switched to Offboard
+        vel_cmd.velocity.x = 0.0;
+        vel_cmd.velocity.y = 0.0;
+        vel_cmd.velocity.z = 0.0;
+        vel_cmd.yaw_rate = 0.0;
         vel_cmd.header.stamp = ros::Time::now();
         vel_cmd.velocity.x = 0.0;
         vel_cmd.velocity.y = 0.0;

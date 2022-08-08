@@ -26,6 +26,7 @@ def acados_settings(Tf, N, generate_code=False):
     # OCP dimensions
     nx = model.x.size()[0]
     nu = model.u.size()[0]
+    n_par = model.p.size()[0]
     ny = nx + nu
     ocp.dims.N = N
 
@@ -43,27 +44,22 @@ def acados_settings(Tf, N, generate_code=False):
     Vu[nx:, :nu] = np.eye(nu)
     ocp.cost.Vu = Vu
 
-    # Terminal cost map
-    Vx_e = np.eye(nx)
-    ocp.cost.Vx_e = Vx_e
-
-    W = np.diag([20, 20, 25,   # Position
-                 4, 4, 5,      # Velocity
-                 1, 1, 1,      # Attitude
-                 1e6,          # Yaw rate
-                 1e7,          # Pitch
-                 1e7,          # Roll
-                 1e7])         # Thrust
+    # Weights
+    W = np.eye(ny)
 
     # Stage cost
     ocp.cost.W = W
 
+    # Terminal cost map
+    Vx_e = np.eye(nx)
+    ocp.cost.Vx_e = Vx_e
+
     # Terminal cost
-    ocp.cost.W_e = 10 * N * W[:nx, :nx]
+    ocp.cost.W_e = N * W[:nx, :nx]
 
     # References
-    ocp.cost.yref = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    ocp.cost.yref_e = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
+    ocp.cost.yref = np.zeros(ny)
+    ocp.cost.yref_e = np.zeros(nx)
 
     # OCP constraints
     # Attitude constraints
@@ -81,39 +77,16 @@ def acados_settings(Tf, N, generate_code=False):
         [roll_max, pitch_max, yaw_max])
 
     # Input constraints
-    yaw_rate_min = -0.05*np.pi
-    yaw_rate_max = 0.05*np.pi
-    pitch_cmd_min = -0.03*np.pi
-    pitch_cmd_max = 0.03*np.pi
-    roll_cmd_min = -0.03*np.pi
-    roll_cmd_max = 0.03*np.pi
-    thrust_min = 0.4478
-    thrust_max = 0.6717
-
     ocp.constraints.idxbu = np.array([0, 1, 2, 3])
-    ocp.constraints.lbu = np.array(
-        [yaw_rate_min, pitch_cmd_min, roll_cmd_min, thrust_min])
-    ocp.constraints.ubu = np.array(
-        [yaw_rate_max, pitch_cmd_max, roll_cmd_max, thrust_max])
+    ocp.constraints.lbu = np.zeros(nu)
+    ocp.constraints.ubu = np.zeros(nu)
 
     # Initial state
-    ocp.constraints.x0 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
+    ocp.constraints.x0 = np.zeros(nx)
 
     # Model
     ocp.model = model
-    ocp.parameter_values = np.array(
-        [0.15,      # Roll time constant
-         1.02,      # Roll gain
-         0.15,      # Pitch time constant
-         1.02,      # Pitch gain
-         -0.38,     # Damping x
-         -0.38,     # Damping y
-         -0.10,     # Damping z
-         0,         # Disturbance force x
-         0,         # Disturbance force y
-         0,         # Disturbance force z
-         13.74,     # Thrust coefficients
-         -9.8066])  # Gravity
+    ocp.parameter_values = np.zeros(n_par)
 
     # OCP options
     ocp.solver_options.tf = Tf
@@ -124,7 +97,6 @@ def acados_settings(Tf, N, generate_code=False):
     ocp.solver_options.nlp_solver_type = 'SQP'
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
     ocp.solver_options.integrator_type = 'ERK'
-    # ocp.solver_options.nlp_solver_max_iter = 1000
 
     # Path to acados include and lib directories
     # Uncomment if you want to build generated c code

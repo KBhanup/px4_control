@@ -33,7 +33,10 @@ AcadosNMPC::~AcadosNMPC() {
   }
 }
 
-bool AcadosNMPC::initializeController(const model_parameters &model_params) {
+bool AcadosNMPC::initializeController(
+    const model_parameters &model_params,
+    const std::vector<double> &input_lower_bound,
+    const std::vector<double> &input_upper_bound) {
   // Initiallize Acados solver with default shooting intervals
   acados_ocp_capsule = drone_w_disturbances_acados_create_capsule();
   int status = drone_w_disturbances_acados_create(acados_ocp_capsule);
@@ -54,19 +57,31 @@ bool AcadosNMPC::initializeController(const model_parameters &model_params) {
 
   // Initial conditions
   int idxbx0[DRONE_W_DISTURBANCES_NBX0];
-  idxbx0[0] = 0;
-  idxbx0[1] = 1;
-  idxbx0[2] = 2;
-  idxbx0[3] = 3;
-  idxbx0[4] = 4;
-  idxbx0[5] = 5;
-  idxbx0[6] = 6;
-  idxbx0[7] = 7;
-  idxbx0[8] = 8;
+  for (int i = 0; i < DRONE_W_DISTURBANCES_NBX0; i++) idxbx0[i] = i;
+
   ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbx",
                                 idxbx0);
 
   setModelParameters(model_params);
+
+  // Set input constraints
+  double lbu[DRONE_W_DISTURBANCES_NU];
+  double ubu[DRONE_W_DISTURBANCES_NU];
+
+  for (int i = 0; i < DRONE_W_DISTURBANCES_NU; i++) {
+    lbu[i] = input_lower_bound[i];
+    ubu[i] = input_upper_bound[i];
+  }
+
+  for (int i = 0; i < DRONE_W_DISTURBANCES_N; i++) {
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, i, "lbu", lbu);
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, i, "ubu", ubu);
+  }
+
+  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in,
+                                DRONE_W_DISTURBANCES_N, "lbu", lbu);
+  ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in,
+                                DRONE_W_DISTURBANCES_N, "ubu", ubu);
 
   return true;
 }
@@ -101,19 +116,8 @@ bool AcadosNMPC::setWeighingMatrix(const std::vector<double> &weights) {
     for (int i = 0; i < DRONE_W_DISTURBANCES_NY * DRONE_W_DISTURBANCES_NY; i++)
       W[i] = 0.0;
 
-    W[0 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[0];    // Position x
-    W[1 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[1];    // Position y
-    W[2 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[2];    // Position z
-    W[3 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[3];    // Velocity x
-    W[4 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[4];    // Velocity y
-    W[5 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[5];    // Velocity z
-    W[6 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[6];    // Roll
-    W[7 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[7];    // Pitch
-    W[8 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[8];    // Yaw
-    W[9 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[9];    // Yaw rate
-    W[10 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[10];  // Pitch cmd
-    W[11 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[11];  // Roll cmd
-    W[12 * (DRONE_W_DISTURBANCES_NY + 1)] = weights[12];  // Thrust
+    for (int i = 0; i < DRONE_W_DISTURBANCES_NY; i++)
+      W[i * (DRONE_W_DISTURBANCES_NY + 1)] = weights[i];
 
     for (int i = 0; i < DRONE_W_DISTURBANCES_N; i++)
       ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "W", W);
@@ -122,24 +126,9 @@ bool AcadosNMPC::setWeighingMatrix(const std::vector<double> &weights) {
     for (int i = 0; i < DRONE_W_DISTURBANCES_NX * DRONE_W_DISTURBANCES_NX; i++)
       WN[i] = 0.0;
 
-    WN[0 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[0];
-    WN[1 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[1];
-    WN[2 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[2];
-    WN[3 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[3];
-    WN[4 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[4];
-    WN[5 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[5];
-    WN[6 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[6];
-    WN[7 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[7];
-    WN[8 * (DRONE_W_DISTURBANCES_NX + 1)] =
-        10.0 * DRONE_W_DISTURBANCES_N * weights[8];
+    for (int i = 0; i < DRONE_W_DISTURBANCES_NX; i++)
+      WN[i * (DRONE_W_DISTURBANCES_NX + 1)] =
+          10.0 * DRONE_W_DISTURBANCES_N * weights[i];
 
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, DRONE_W_DISTURBANCES_N,
                            "W", WN);

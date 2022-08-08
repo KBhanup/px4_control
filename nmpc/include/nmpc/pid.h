@@ -31,6 +31,7 @@ class PIDController {
   /**
    * @brief Returns the calculated control input
    * @param error Current error
+   * @param error_time Error timestamp
    */
   double getControl(double error, double error_time) {
     // Proportional

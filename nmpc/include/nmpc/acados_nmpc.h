@@ -42,9 +42,13 @@ class AcadosNMPC {
   /**
    * @brief Initializes controller and sets the model parameters
    * @param model_params The model parameters
+   * @param input_lower_bound The command lower bound constraint
+   * @param input_upper_bound The command upper bound constraint
    * @returns True if successful
    */
-  bool initializeController(const model_parameters &model_params);
+  bool initializeController(const model_parameters &model_params,
+                            const std::vector<double> &input_lower_bound,
+                            const std::vector<double> &input_upper_bound);
 
   /**
    * @brief Sets the thrust coefficient

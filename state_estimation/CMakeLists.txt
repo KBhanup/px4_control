@@ -3,6 +3,7 @@ project(state_estimation)
 
 ## Compile as C++14
 add_compile_options(-std=c++14)
+add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS)
 
 ################
 # Dependencies #

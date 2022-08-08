@@ -115,6 +115,7 @@ class PX4Pilot {
   model_parameters model_params_wo_sensor;
   trajectory_setpoint drone_state;
   std::vector<double> disturbances, weights;
+  std::vector<double> input_lower_bound, input_upper_bound;
   std::vector<trajectory_setpoint> current_reference_trajectory;
 
   // Mutexes
