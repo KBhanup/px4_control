@@ -11,7 +11,7 @@
 namespace px4_ctrl {
 StateObserver::StateObserver(ros::NodeHandle &nh) {
   // Setup Subscribers
-  pose_sub = nh.subscribe("/mavros/global_position/local", 1,
+  pose_sub = nh.subscribe("/mavros/local_position/odom", 1,
                           &StateObserver::poseCallback, this);
   odom_sub = nh.subscribe("/mavros/local_position/odom", 1,
                           &StateObserver::odomCallback, this);
