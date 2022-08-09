@@ -61,6 +61,8 @@ class StateMachineNode():
         self.mission_step = 0
         self.mission_setpoints = [{'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
                                    'hor_offset': 0.03, 'ver_offset': 0.05, 'required_force': None},
+                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
+                                   'hor_offset': 0.03, 'ver_offset': 0.05, 'required_force': None},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
                                    'hor_offset': 0.03, 'ver_offset': 0.20, 'required_force': -0.7},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
