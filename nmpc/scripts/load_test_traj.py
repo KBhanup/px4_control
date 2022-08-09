@@ -71,7 +71,7 @@ for i in range(steps):
 # Add last point with zero velocities
 setpoint = Setpoint()
 
-setpoint.position.x = 1.0
+setpoint.position.x = 0.5
 setpoint.position.y = 0.0
 setpoint.position.z = 2.0
 
