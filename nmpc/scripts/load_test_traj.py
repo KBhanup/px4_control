@@ -73,7 +73,7 @@ setpoint = Setpoint()
 
 setpoint.position.x = 0.5
 setpoint.position.y = 0.0
-setpoint.position.z = 2.0
+setpoint.position.z = 1.0
 
 setpoint.velocity.x = 0.0
 setpoint.velocity.y = 0.0
