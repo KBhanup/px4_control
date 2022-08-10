@@ -20,6 +20,8 @@ cmd_data.thrust = cellfun(@(m) double(m.Thrust), bag_struct);
 
 cmd_data.yaw_rate = cellfun(@(m) double(m.BodyRate.Z), bag_struct);
 
+
+
 % Odometry
 bag_select = select(flight_data, 'Topic', '/mavros/local_position/odom');
 bag_struct = readMessages(bag_select, 'DataFormat', 'struct');
@@ -42,7 +44,22 @@ odom_data.xdot = cellfun(@(m) double(m.Twist.Twist.Linear.X), bag_struct);
 odom_data.ydot = cellfun(@(m) double(m.Twist.Twist.Linear.Y), bag_struct);
 odom_data.zdot = cellfun(@(m) double(m.Twist.Twist.Linear.Z), bag_struct);
 
+
 %% Process Data
+start_time = cmd_data.time(1);
+cmd_data.time = cmd_data.time - start_time;
+
+%Unique Data
+cmd_data.time = round(cmd_data.time,4);
+[C, ia, ic] = unique(cmd_data(:,1),'rows');
+cmd_data = cmd_data(ia,:);
+
+%Unique Data
+odom_data.time = odom_data.time - start_time;
+odom_data.time = round(odom_data.time,4);
+[Q, ip, ir] = unique(odom_data(:,1),'rows');
+odom_data = odom_data(ip,:);
+
 
 % Convert CMDs from Quaternion to RPY
 for i = 1 : length(cmd_data.time)
