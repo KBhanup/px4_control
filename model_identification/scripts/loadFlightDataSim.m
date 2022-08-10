@@ -50,7 +50,7 @@ start_time = cmd_data.time(1);
 cmd_data.time = cmd_data.time - start_time;
 
 %Unique Data
-cmd_data.time = round(cmd_data.time,4);
+cmd_data.time = round(cmd_data.time,4);             #rounds off to '4' decimal points
 [C, ia, ic] = unique(cmd_data(:,1),'rows');
 cmd_data = cmd_data(ia,:);
 
