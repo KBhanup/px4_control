@@ -12,7 +12,7 @@ mission_state_pub = rp.Publisher('/mission_state', MissionState, queue_size=1, l
 
 # Prepare setpoint message
 setpoint_msg = Setpoint()
-setpoint_msg.position.x = -1.6
+setpoint_msg.position.x = 0.0
 setpoint_msg.position.y = 0.0
 setpoint_msg.position.z = 1.5
 setpoint_msg.velocity.x = 0.0
