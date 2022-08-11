@@ -1,17 +1,18 @@
 import time
 import rospy as rp
 
-from px4_control_msgs.msg import Setpoint, Trajectory
+from px4_control_msgs.msg import Setpoint, Trajectory, MissionState
 
 # Start a node
 rp.init_node('setpoint_node')
 
 # Setup Publisher
 trajectory_pub = rp.Publisher('/drone_trajectory', Trajectory, queue_size=1, latch=True)
+mission_state_pub = rp.Publisher('/mission_state', MissionState, queue_size=1)
 
 # Prepare setpoint message
 setpoint_msg = Setpoint()
-setpoint_msg.position.x = -1.6
+setpoint_msg.position.x = 0.0
 setpoint_msg.position.y = 0.0
 setpoint_msg.position.z = 1.5
 setpoint_msg.velocity.x = 0.0
@@ -24,6 +25,13 @@ setpoint_msg.orientation.z = 0.0
 traj = Trajectory()
 traj.header.stamp = rp.Time.now()
 traj.trajectory.append(setpoint_msg)
+
+# Publish mission state
+mission_state_msg = MissionState()
+mission_state_msg.in_contact.data = False
+mission_state_msg.wt_sensor.data = False
+mission_state_pub.publish(mission_state_msg)
+time.sleep(1.0)
 
 # Publish setpoint
 trajectory_pub.publish(traj)
