@@ -347,7 +347,7 @@ class StateMachineNode():
             elif dz < 0.05 or dx > 0.1 or dy > 0.1:
                 rp.logwarn(
                     'Drone\'s position is problematic. Move back and try again')
-                rp.logwarn('dx: {:.3f}, dy: {:.3f}, dz: {:.3f}'.format())
+                rp.logwarn('dx: {:.3f}, dy: {:.3f}, dz: {:.3f}'.format(dx, dy, dz))
                 rp.loginfo('Disengaging Drone magnet')
                 self.drone_magnet.droneMagnetDisengage()
                 self.in_contact = False
