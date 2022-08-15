@@ -281,7 +281,7 @@ class StateMachineNode():
 
         self.deployed_setpoint_pub.publish(deployed_msg)
 
-        rp.loginfo('Sensor deployed wrt the marker at: {}, {}, {}'.format(
+        rp.loginfo('Sensor deployed wrt the marker at: {:.3f}, {:.3f}, {:.3f}'.format(
             H_marker_deployed[0, 3],
             H_marker_deployed[1, 3],
             H_marker_deployed[2, 3]
@@ -378,6 +378,7 @@ class StateMachineNode():
             elif dz < 0.05 or dx > 0.1 or dy > 0.1:
                 rp.logwarn(
                     'Drone\'s position is problematic. Move back and try again')
+                rp.logwarn('dx: {:.3f}, dy: {:.3f}, dz: {:.3f}'.format())
                 rp.loginfo('Disengaging sensor magnet')
                 self.sensor_magnet_off.switchMagnet()
                 self.mission_step -= 2
