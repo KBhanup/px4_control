@@ -337,6 +337,7 @@ void PX4Pilot::loadParameters() {
   o_pid_k = loadVectorParameter(nh_pvt, "o_pid", vector_parameter);
 
   // Controller input constraints
+  std::vector<double> default_gains{0.0, 0.0, 0.0, 0.0};
   input_lower_bound = loadVectorParameter(nh_pvt, "lbu", default_gains);
   input_upper_bound = loadVectorParameter(nh_pvt, "ubu", default_gains);
 

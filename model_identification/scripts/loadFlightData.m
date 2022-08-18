@@ -14,7 +14,8 @@ cmd_data = table();
 cmd_data.time = ...
     cellfun(@(m) double(m.Header.Stamp.Sec), bag_struct) + ...
     cellfun(@(m) double(m.Header.Stamp.Nsec)*1e-9, bag_struct);
-
+start_time = cmd_data.time(1);
+cmd_data.time = cmd_data.time - start_time;
 cmd_data.thrust = rc_data.rc_rev(rc_data.rc_map(1)) *...
     (cellfun(@(m) double(m.Channels(rc_data.rc_map(1))), bag_struct) - rc_data.rc_min(rc_data.rc_map(1))) / (2 * rc_half_range(rc_data.rc_map(1)));
 cmd_data.roll = rc_data.rc_rev(rc_data.rc_map(2)) * rc_data.rp_max *...
@@ -24,6 +25,11 @@ cmd_data.pitch = rc_data.rc_rev(rc_data.rc_map(3)) * rc_data.rp_max *...
 cmd_data.yaw_rate = rc_data.rc_rev(rc_data.rc_map(4)) * rc_data.yr_max *...
     (cellfun(@(m) double(m.Channels(rc_data.rc_map(4))), bag_struct) - rc_mean(rc_data.rc_map(4))) / rc_half_range(rc_data.rc_map(4));
 
+% %Unique Data
+cmd_data.time = round(cmd_data.time,4);
+[C, ia, ic] = unique(cmd_data(:,1),'rows');
+cmd_data = cmd_data(ia,:);
+
 % Odometry
 bag_select = select(flight_data, 'Topic', '/mavros/local_position/odom');
 bag_struct = readMessages(bag_select, 'DataFormat', 'struct');
@@ -32,7 +38,7 @@ odom_data = table();
 odom_data.time = ...
     cellfun(@(m) double(m.Header.Stamp.Sec), bag_struct) + ...
     cellfun(@(m) double(m.Header.Stamp.Nsec)*1e-9, bag_struct);
-
+odom_data.time = odom_data.time - start_time;
 odom_data.x = cellfun(@(m) double(m.Pose.Pose.Position.X), bag_struct);
 odom_data.y = cellfun(@(m) double(m.Pose.Pose.Position.Y), bag_struct);
 odom_data.z = cellfun(@(m) double(m.Pose.Pose.Position.Z), bag_struct);
@@ -45,8 +51,15 @@ odom_data.qz = cellfun(@(m) double(m.Pose.Pose.Orientation.Z), bag_struct);
 odom_data.xdot = cellfun(@(m) double(m.Twist.Twist.Linear.X), bag_struct);
 odom_data.ydot = cellfun(@(m) double(m.Twist.Twist.Linear.Y), bag_struct);
 odom_data.zdot = cellfun(@(m) double(m.Twist.Twist.Linear.Z), bag_struct);
-
+%Unique Data
+odom_data.time = round(odom_data.time,4);
+[Q, ip, ir] = unique(odom_data(:,1),'rows');
+odom_data = odom_data(ip,:);
 %% Process Data
+%cmd_data.time = cmd_data.time - start_time;
+
+
+
 % Get Euler Angles from Quaternion
 % Get velocities on world frame
 for i = 1 : length(odom_data.time)
