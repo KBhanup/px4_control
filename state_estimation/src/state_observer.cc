@@ -459,6 +459,10 @@ void StateObserver::missionStateCallback(
       k_thrust = k_thrust_wo_sensor;
       ROS_INFO("Observer switched to model without sensor");
     }
+    // Zero disturbances
+    state.disturbances.setZero();
+
+    // Change mission flag
     wt_sensor = wt_sensor_new;
   }
 }
