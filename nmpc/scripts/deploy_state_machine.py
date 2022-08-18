@@ -39,6 +39,7 @@ class StateMachineNode():
         self.z_distances = [-0.65, -0.50, -0.20, -0.45, -0.65]
 
         # Marker's pose used for setpoints
+        self.H_world_marker = None
         self.marker_position = None
         self.marker_orientation = None
 
@@ -130,7 +131,7 @@ class StateMachineNode():
                 self.H_world_marker[0:3, 0:3] = quaternion.as_rotation_matrix(
                     marker_att)
 
-                self.calculateMissionSetpoints()  # (self.H_world_marker)
+                self.calculateMissionSetpoints()
                 self.setpoints_initialized = True
 
             else:
@@ -163,9 +164,6 @@ class StateMachineNode():
                     self.calculateMissionSetpoints()  # (self.H_world_marker)
 
     def rcCallback(self, msg):
-        # Check RC button that specifies mission type
-        # Deploy: Down - 2006
-        # Retrieve: Top - 982
         if self.mission_bttn != msg.channels[9]:
             self.mission_bttn = msg.channels[9]
             self.in_mission = True
@@ -242,23 +240,23 @@ class StateMachineNode():
         self.mission_state_pub.publish(mission_state_msg)
 
     def getOffsets(self,):
-        dx = self.drone_position[0] - \
-            self.mission_setpoints[self.mission_step]['set_x']
-        dy = self.drone_position[1] - \
-            self.mission_setpoints[self.mission_step]['set_y']
-        dz = self.drone_position[2] - \
-            self.mission_setpoints[self.mission_step]['set_z']
-        do = self.drone_orientation - \
-            self.mission_setpoints[self.mission_step]['set_o']
+        dx = abs(
+            self.drone_position[0] - self.mission_setpoints[self.mission_step]['set_x'])
+        dy = abs(
+            self.drone_position[1] - self.mission_setpoints[self.mission_step]['set_y'])
+        dz = abs(
+            self.drone_position[2] - self.mission_setpoints[self.mission_step]['set_z'])
+        do = abs(
+            self.drone_orientation - self.mission_setpoints[self.mission_step]['set_o'])
 
         return dx, dy, dz, do
 
     def checkPoseCondition(self, dx, dy, dz, do):
         pose_condition = \
-            abs(dx) < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-            abs(dy) < self.mission_setpoints[self.mission_step]['hor_offset'] and \
-            abs(dz) < self.mission_setpoints[self.mission_step]['ver_offset'] and \
-            abs(do) < 0.1
+            dx < self.mission_setpoints[self.mission_step]['hor_offset'] and \
+            dy < self.mission_setpoints[self.mission_step]['hor_offset'] and \
+            dz < self.mission_setpoints[self.mission_step]['ver_offset'] and \
+            do < 0.1
 
         return pose_condition
 
@@ -267,6 +265,11 @@ class StateMachineNode():
             return self.disturbances[2] < self.mission_setpoints[self.mission_step]['required_force']
         else:
             return self.disturbances[2] > self.mission_setpoints[self.mission_step]['required_force']
+
+    def checkProximityCondition(self,):
+        dz = self.marker_position[2] - self.drone_position[2]
+
+        return dz < 0.2
 
     def publishDeployedPosition(self,):
         H_world_deployed = np.identity(4)
@@ -344,7 +347,7 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
             # Check if vertical position too close to setpoint
-            elif dz > -0.2:
+            elif self.checkProximityCondition():
                 rp.logwarn(
                     'Drone is closer than it should be. Move back and try again')
                 self.mission_step -= 1
@@ -381,7 +384,7 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
             # Check if vertical position too close to setpoint or horizontal position too far from setpoint
-            elif dz > -0.2 or dx > 0.1 or dy > 0.1:
+            elif self.checkProximityCondition() or dx > 0.1 or dy > 0.1:
                 rp.logwarn(
                     'Drone\'s position is problematic. Move back and try again')
                 rp.logwarn(
