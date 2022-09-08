@@ -29,7 +29,7 @@ class StateMachineNode():
         self.sensor_magnet_off = MagnetControl(15)
 
         # Sensor deployment point relative to marker
-        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.18],
+        self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, -0.155],
                                            [0.0, 1.0, 0.0,  0.00],
                                            [0.0, 0.0, 1.0,  0.00],
                                            [0.0, 0.0, 0.0,  1.00]])
@@ -61,15 +61,15 @@ class StateMachineNode():
         self.mission_start_t = None
         self.mission_step = 0
         self.mission_setpoints = [{'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.03, 'ver_offset': 0.05, 'required_force': None},
+                                   'hor_offset': 0.06, 'ver_offset': 0.06, 'required_force': None},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.03, 'ver_offset': 0.05, 'required_force': None},
+                                   'hor_offset': 0.06, 'ver_offset': 0.06, 'required_force': None},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.03, 'ver_offset': 0.20, 'required_force': -0.7},
+                                   'hor_offset': 0.06, 'ver_offset': 0.20, 'required_force': -0.7},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
                                    'hor_offset': 1.00, 'ver_offset': 0.20, 'required_force':  0.7},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.05, 'ver_offset': 0.05, 'required_force': None}]
+                                   'hor_offset': 0.06, 'ver_offset': 0.06, 'required_force': None}]
 
         # Subscribers
         self.state_sub = rp.Subscriber(
@@ -170,7 +170,7 @@ class StateMachineNode():
             self.mission_bttn = msg.channels[9]
             self.in_mission = True
 
-    def markerseenCallback(self):
+    def markerseenCallback(self, msg):
         self.last_markerseen = rp.Time.now()
 
     """
@@ -302,9 +302,9 @@ class StateMachineNode():
             H_marker_deployed[2, 3]
         ))
 
-    def markernotvisibile(self,):
+    def markerVisible(self,):
         self.lap = rp.Time.now() - self.last_markerseen
-        if self.lap.secs > 0.5:
+        if self.lap.secs < 0.5:
             return True
 
     """
@@ -340,7 +340,7 @@ class StateMachineNode():
             dist_condition = self.checkDisturbanceCondition()
 
             # Check position and required force
-            if pose_condition and dist_condition:
+            if pose_condition and dist_condition and markerVisible:
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
                 self.sensor_magnet_on.switchMagnet()
@@ -362,13 +362,6 @@ class StateMachineNode():
                     'Drone is closer than it should be. Move back and try again')
                 self.mission_step -= 1
                 self.publish_setpoint = True
-
-            #Check Marker is visible before deploying
-            elif self.markernotvisibile():
-                rp.logwarn('Marker is not Visible. Move back and try again')
-                self.mission_step -= 1
-                self.publish_setpoint = True
-
             
 
         # Check if sensor is attached
