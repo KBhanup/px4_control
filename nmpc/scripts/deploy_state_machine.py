@@ -2,7 +2,7 @@
 import rospy as rp
 import numpy as np
 import quaternion
-
+from std_msgs.msg import Duration
 import threading
 
 from magnet_control import MagnetControl
@@ -76,6 +76,8 @@ class StateMachineNode():
             '/drone_state', DroneStateMarker, self.stateCallback, queue_size=1)
         self.rc_sub = rp.Subscriber(
             '/mavros/rc/in', RCIn, self.rcCallback, queue_size=1)
+        self.duration_sub = rp.Subscriber(
+            '/marker_seen_at', Duration, self.markerseenCallback, queue_size=1)
 
         # Publishers
         self.trajectory_pub = rp.Publisher(
@@ -167,6 +169,9 @@ class StateMachineNode():
         if self.mission_bttn != msg.channels[9]:
             self.mission_bttn = msg.channels[9]
             self.in_mission = True
+
+    def markerseenCallback(self, msg):
+        self.last_markerseen = msg.time
 
     """
        Helper functions
@@ -297,6 +302,11 @@ class StateMachineNode():
             H_marker_deployed[2, 3]
         ))
 
+    def markernotvisibile(self,):
+        self.lap = rp.Time.now() - self.last_markerseen
+        if self.lap > 0.5:
+            return True
+
     """
        State Machine main function
     """
@@ -352,6 +362,14 @@ class StateMachineNode():
                     'Drone is closer than it should be. Move back and try again')
                 self.mission_step -= 1
                 self.publish_setpoint = True
+
+            #Check Marker is visible before deploying
+            elif self.markernotvisibile():
+                rp.logwarn('Marker is not Visible. Move back and try again')
+                self.mission_step -= 1
+                self.publish_setpoint = True
+
+            
 
         # Check if sensor is attached
         elif self.mission_step == 3:
