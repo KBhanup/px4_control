@@ -340,7 +340,7 @@ class StateMachineNode():
             dist_condition = self.checkDisturbanceCondition()
 
             # Check position and required force
-            if pose_condition and dist_condition and markerVisible:
+            if pose_condition and dist_condition and self.markerVisible():
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
                 self.sensor_magnet_on.switchMagnet()
@@ -395,7 +395,7 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
             # Check if vertical position too close to setpoint or horizontal position too far from setpoint
-            elif self.checkProximityCondition() or dx > 0.1 or dy > 0.1:
+            elif self.checkProximityCondition() or dx > 0.15 or dy > 0.15:
                 rp.logwarn(
                     'Drone\'s position is problematic. Move back and try again')
                 rp.logwarn(
