@@ -2,11 +2,11 @@
 import rospy as rp
 import numpy as np
 import quaternion
-from std_msgs.msg import Duration
+
 import threading
 
 from magnet_control import MagnetControl
-
+from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Vector3
 from mavros_msgs.msg import RCIn
 from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint, MissionState
@@ -77,7 +77,7 @@ class StateMachineNode():
         self.rc_sub = rp.Subscriber(
             '/mavros/rc/in', RCIn, self.rcCallback, queue_size=1)
         self.duration_sub = rp.Subscriber(
-            '/marker_seen_at', Duration, self.markerseenCallback, queue_size=1)
+            '/marker/pose', PoseStamped, self.markerseenCallback, queue_size=1)
 
         # Publishers
         self.trajectory_pub = rp.Publisher(
@@ -170,8 +170,8 @@ class StateMachineNode():
             self.mission_bttn = msg.channels[9]
             self.in_mission = True
 
-    def markerseenCallback(self, msg):
-        self.last_markerseen = msg.time
+    def markerseenCallback(self):
+        self.last_markerseen = rp.Time.now()
 
     """
        Helper functions
@@ -304,7 +304,7 @@ class StateMachineNode():
 
     def markernotvisibile(self,):
         self.lap = rp.Time.now() - self.last_markerseen
-        if self.lap > 0.5:
+        if self.lap.secs > 0.5:
             return True
 
     """
