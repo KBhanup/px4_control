@@ -173,6 +173,7 @@ class StateMachineNode():
     def markerseenCallback(self, msg):
         self.last_markerseen = rp.Time.now()
 
+
     """
        Helper functions
     """
@@ -274,7 +275,7 @@ class StateMachineNode():
     def checkProximityCondition(self,):
         dz = self.marker_position[2] - self.drone_position[2]
 
-        return dz < 0.2
+        return dz < 0.25
 
     def publishDeployedPosition(self,):
         H_world_deployed = np.identity(4)
@@ -306,6 +307,7 @@ class StateMachineNode():
         self.lap = rp.Time.now() - self.last_markerseen
         if self.lap.secs < 0.5:
             return True
+
 
     """
        State Machine main function
@@ -340,7 +342,7 @@ class StateMachineNode():
             dist_condition = self.checkDisturbanceCondition()
 
             # Check position and required force
-            if pose_condition and dist_condition and self.markerVisible():
+            if pose_condition and dist_condition:
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
                 self.sensor_magnet_on.switchMagnet()
@@ -363,7 +365,6 @@ class StateMachineNode():
                 self.mission_step -= 1
                 self.publish_setpoint = True
             
-
         # Check if sensor is attached
         elif self.mission_step == 3:
             dt = rp.Time.now() - self.mission_start_t
