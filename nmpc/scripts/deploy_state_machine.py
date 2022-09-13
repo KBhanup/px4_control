@@ -275,7 +275,7 @@ class StateMachineNode():
     def checkProximityCondition(self,):
         dz = self.marker_position[2] - self.drone_position[2]
 
-        return dz < 0.25
+        return dz < 0.16
 
     def publishDeployedPosition(self,):
         H_world_deployed = np.identity(4)
@@ -335,7 +335,7 @@ class StateMachineNode():
 
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)
             dist_condition = self.checkDisturbanceCondition()
-            marker_condition = marker_dt < 0.5
+            marker_condition = marker_dt.secs < 0.5
 
             # Check position and required force
             if pose_condition and dist_condition and marker_condition:
@@ -347,7 +347,7 @@ class StateMachineNode():
                 self.mission_step += 1
                 self.publish_setpoint = True
 
-            elif marker_dt > 10.0:
+            elif marker_dt.secs > 10.0:
                 rp.logwarn(
                     'More than 10 seconds have passed since the last time marker was detected. Move back and try again')
                 self.mission_step -= 1
