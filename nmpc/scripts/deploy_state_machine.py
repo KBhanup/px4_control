@@ -42,6 +42,7 @@ class StateMachineNode():
         self.H_world_marker = None
         self.marker_position = None
         self.marker_orientation = None
+        self.last_marker_seen = None
 
         # Drone's pose and disturbances
         self.drone_position = None
@@ -61,15 +62,15 @@ class StateMachineNode():
         self.mission_start_t = None
         self.mission_step = 0
         self.mission_setpoints = [{'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.06, 'ver_offset': 0.06, 'required_force': None},
+                                   'hor_offset': 0.05, 'ver_offset': 0.05, 'required_force': None},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.06, 'ver_offset': 0.06, 'required_force': None},
+                                   'hor_offset': 0.05, 'ver_offset': 0.05, 'required_force': None},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.06, 'ver_offset': 0.20, 'required_force': -0.7},
+                                   'hor_offset': 0.05, 'ver_offset': 0.20, 'required_force': -0.7},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
                                    'hor_offset': 1.00, 'ver_offset': 0.20, 'required_force':  0.7},
                                   {'set_x': 0.0, 'set_y': 0.0, 'set_z': 0.0, 'set_o': 0.0,
-                                   'hor_offset': 0.06, 'ver_offset': 0.06, 'required_force': None}]
+                                   'hor_offset': 0.05, 'ver_offset': 0.05, 'required_force': None}]
 
         # Subscribers
         self.state_sub = rp.Subscriber(
@@ -77,7 +78,7 @@ class StateMachineNode():
         self.rc_sub = rp.Subscriber(
             '/mavros/rc/in', RCIn, self.rcCallback, queue_size=1)
         self.duration_sub = rp.Subscriber(
-            '/marker/pose', PoseStamped, self.markerseenCallback, queue_size=1)
+            '/marker/pose', PoseStamped, self.markerCallback, queue_size=1)
 
         # Publishers
         self.trajectory_pub = rp.Publisher(
@@ -170,9 +171,8 @@ class StateMachineNode():
             self.mission_bttn = msg.channels[9]
             self.in_mission = True
 
-    def markerseenCallback(self, msg):
-        self.last_markerseen = rp.Time.now()
-
+    def markerCallback(self, msg):
+        self.last_marker_seen = rp.Time.now()
 
     """
        Helper functions
@@ -303,12 +303,6 @@ class StateMachineNode():
             H_marker_deployed[2, 3]
         ))
 
-    def markerVisible(self,):
-        self.lap = rp.Time.now() - self.last_markerseen
-        if self.lap.secs < 0.5:
-            return True
-
-
     """
        State Machine main function
     """
@@ -335,14 +329,16 @@ class StateMachineNode():
 
         # Try to deploy sensor
         elif self.mission_step == 2:
+            marker_dt = rp.Time.now() - self.last_marker_seen
             dt = rp.Time.now() - self.mission_start_t
             dx, dy, dz, do = self.getOffsets()
 
             pose_condition = self.checkPoseCondition(dx, dy, dz, do)
             dist_condition = self.checkDisturbanceCondition()
+            marker_condition = marker_dt < 0.5
 
             # Check position and required force
-            if pose_condition and dist_condition:
+            if pose_condition and dist_condition and marker_condition:
                 self.in_contact = True
                 rp.loginfo('Engaging sensor magnet')
                 self.sensor_magnet_on.switchMagnet()
@@ -351,10 +347,16 @@ class StateMachineNode():
                 self.mission_step += 1
                 self.publish_setpoint = True
 
-            # Check time passed
-            elif dt.secs > 20:
+            elif marker_dt > 10.0:
                 rp.logwarn(
-                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
+                    'More than 10 seconds have passed since the last time marker was detected. Move back and try again')
+                self.mission_step -= 1
+                self.publish_setpoint = True
+
+            # Check time passed
+            elif dt.secs > 30.0:
+                rp.logwarn(
+                    'More than 30 seconds have passed since started trying to deploy. Move back and try again')
                 self.mission_step -= 1
                 self.publish_setpoint = True
 
@@ -364,7 +366,7 @@ class StateMachineNode():
                     'Drone is closer than it should be. Move back and try again')
                 self.mission_step -= 1
                 self.publish_setpoint = True
-            
+
         # Check if sensor is attached
         elif self.mission_step == 3:
             dt = rp.Time.now() - self.mission_start_t
@@ -386,9 +388,9 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
             # Check time passed
-            elif dt.secs > 20:
+            elif dt.secs > 30:
                 rp.logwarn(
-                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
+                    'More than 30 seconds have passed since started trying to deploy. Move back and try again')
                 rp.loginfo('Disengaging sensor magnet')
                 self.sensor_magnet_off.switchMagnet()
                 self.in_contact = False
