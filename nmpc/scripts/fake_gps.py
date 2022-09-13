@@ -3,7 +3,8 @@ import rospy as rp
 import numpy as np
 import random
 
-from geometry_msgs.msg import PoseStamped, Vector3Stamped
+from geometry_msgs.msg import Vector3Stamped
+from nav_msgs.msg import Odometry
 
 
 class FakeGPS():
@@ -28,34 +29,34 @@ class FakeGPS():
 
         # Subscribers
         self.source_pose_sub = rp.Subscriber(
-            '/mavros/local_position/odom', PoseStamped, self.poseCallback, queue_size=1)
+            '/mavros/local_position/odom', Odometry, self.poseCallback, queue_size=1)
 
         # Publishers
         self.noisy_pose_pub = rp.Publisher(
-            '/fake_gps/pose', PoseStamped, queue_size=1)
+            '/fake_gps/pose', Odometry, queue_size=1)
 
         self.random_bias_pub = rp.Publisher(
             '/fake_gps/random_bias', Vector3Stamped, queue_size=1)
 
         rp.spin()
 
-    def mocapCallback(self, msg):
+    def poseCallback(self, msg):
         # Update random walk noise
         self.random_walk.vector.x += random.gauss(0.0, self.random_walk_std)
         self.random_walk.vector.y += random.gauss(0.0, self.random_walk_std)
         self.random_walk.vector.z += random.gauss(0.0, self.random_walk_std)
 
         # Prepare messages
-        fake_msg = PoseStamped()
+        fake_msg = Odometry()
         fake_msg.header.stamp = msg.header.stamp
         fake_msg.header.frame_id = msg.header.frame_id
-        fake_msg.pose.position.x = msg.pose.position.x + \
-            self.random_walk[0] + random.gauss(0.0, self.noise_std)
-        fake_msg.pose.position.y = msg.pose.position.y + \
-            self.random_walk[1] + random.gauss(0.0, self.noise_std)
-        fake_msg.pose.position.z = msg.pose.position.z + \
-            self.random_walk[2] + random.gauss(0.0, self.noise_std)
-        fake_msg.pose.orientation = msg.pose.orientation
+        fake_msg.pose.pose.position.x = msg.pose.pose.position.x + \
+            self.random_walk.vector.x + random.gauss(0.0, self.noise_std)
+        fake_msg.pose.pose.position.y = msg.pose.pose.position.y + \
+            self.random_walk.vector.y + random.gauss(0.0, self.noise_std)
+        fake_msg.pose.pose.position.z = msg.pose.pose.position.z + \
+            self.random_walk.vector.z + random.gauss(0.0, self.noise_std)
+        fake_msg.pose.pose.orientation = msg.pose.pose.orientation
 
         self.random_walk.header.stamp = msg.header.stamp
 
