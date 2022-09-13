@@ -13,8 +13,8 @@ Q_v: 0.01
 Q_dq: 0.01
 Q_fd: 0.01
 Q_rb: 0.01
-Q_mp: 1.0e-5
-Q_mdq: 1.0e-5
+Q_mp: 1.0e-4
+Q_mdq: 1.0e-4
 
 # Pose covariance
 R_pose_p: [1.0e-2, 1.0e-2, 1.0e-2]
@@ -24,8 +24,8 @@ R_pose_q: [1.0e-4, 1.0e-4, 1.0e-4, 1.0e-4]
 R_odom_v: [0.04, 0.04, 0.04]
 
 # Marker covariance
-R_marker_p: [1.0e-3, 1.0e-3, 1.0e-3]
-R_marker_q: [1.0e-3, 1.0e-3, 1.0e-3, 1.0e-3]
+R_marker_p: [1.0e-2, 1.0e-2, 1.0e-2]
+R_marker_q: [1.0e-2, 1.0e-2, 1.0e-2, 1.0e-2]
 
 # Chi critical values
 pose_chi_critical: 18.548

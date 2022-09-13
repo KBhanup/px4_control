@@ -23,9 +23,12 @@ class FakeGPS():
         self.random_walk_std = pow(random_walk_variance, 0.5)
         self.noise_std = pow(noise_variance, 0.5)
         self.random_walk = Vector3Stamped()
-        self.random_walk.vector.x = 0.0
-        self.random_walk.vector.y = 0.0
-        self.random_walk.vector.z = 0.0
+        self.random_walk.vector.x = 10.0 * \
+            random.gauss(0.0, self.random_walk_std)
+        self.random_walk.vector.y = 10.0 * \
+            random.gauss(0.0, self.random_walk_std)
+        self.random_walk.vector.z = 10.0 * \
+            random.gauss(0.0, self.random_walk_std)
 
         # Subscribers
         self.source_pose_sub = rp.Subscriber(
@@ -64,6 +67,5 @@ class FakeGPS():
         self.random_bias_pub.publish(self.random_walk)
 
 
-
 if __name__ == '__main__':
-    FakeGPS(1.0e-6, 1.0e-4)
+    FakeGPS(1.0e-4, 1.0e-6)
