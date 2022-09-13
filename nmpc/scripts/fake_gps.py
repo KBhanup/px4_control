@@ -3,7 +3,7 @@ import rospy as rp
 import numpy as np
 import random
 
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Vector3Stamped
 
 
 class FakeGPS():
@@ -20,8 +20,11 @@ class FakeGPS():
 
         # Noise setup
         self.random_walk_std = pow(random_walk_variance, 0.5)
-        self.random_walk = np.zeros(3)
         self.noise_std = pow(noise_variance, 0.5)
+        self.random_walk = Vector3Stamped()
+        self.random_walk.vector.x = 0.0
+        self.random_walk.vector.y = 0.0
+        self.random_walk.vector.z = 0.0
 
         # Subscribers
         self.source_pose_sub = rp.Subscriber(
@@ -29,17 +32,20 @@ class FakeGPS():
 
         # Publishers
         self.noisy_pose_pub = rp.Publisher(
-            'noisy_pose', PoseStamped, queue_size=1)
+            '/fake_gps/pose', PoseStamped, queue_size=1)
+
+        self.random_bias_pub = rp.Publisher(
+            '/fake_gps/random_bias', Vector3Stamped, queue_size=1)
 
         rp.spin()
 
     def mocapCallback(self, msg):
         # Update random walk noise
-        self.random_walk[0] += random.gauss(0.0, self.random_walk_std)
-        self.random_walk[1] += random.gauss(0.0, self.random_walk_std)
-        self.random_walk[2] += random.gauss(0.0, self.random_walk_std)
+        self.random_walk.vector.x += random.gauss(0.0, self.random_walk_std)
+        self.random_walk.vector.y += random.gauss(0.0, self.random_walk_std)
+        self.random_walk.vector.z += random.gauss(0.0, self.random_walk_std)
 
-        # Prepare message
+        # Prepare messages
         fake_msg = PoseStamped()
         fake_msg.header.stamp = msg.header.stamp
         fake_msg.header.frame_id = msg.header.frame_id
@@ -51,7 +57,11 @@ class FakeGPS():
             self.random_walk[2] + random.gauss(0.0, self.noise_std)
         fake_msg.pose.orientation = msg.pose.orientation
 
+        self.random_walk.header.stamp = msg.header.stamp
+
         self.noisy_pose_pub.publish(fake_msg)
+        self.random_bias_pub.publish(self.random_walk)
+
 
 
 if __name__ == '__main__':
