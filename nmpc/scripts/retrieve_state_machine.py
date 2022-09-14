@@ -29,8 +29,8 @@ class StateMachineNode():
         self.sensor_magnet_off = MagnetControl(15)
 
         # Sensor deployment point relative to marker
-        deployed_x = -0.15
-        deployed_y = 0.02
+        deployed_x = -0.18
+        deployed_y = 0.06
         self.H_marker_setpoint = np.array([[1.0, 0.0, 0.0, deployed_x],
                                            [0.0, 1.0, 0.0, deployed_y],
                                            [0.0, 0.0, 1.0,  0.00],
@@ -368,7 +368,7 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
             # Check if vertical position too close to setpoint or horizontal position too far from setpoint
-            elif self.checkProximityCondition() or dx > 0.1 or dy > 0.1:
+            elif self.checkProximityCondition() or dx > 0.15 or dy > 0.15:
                 rp.logwarn(
                     'Drone\'s position is problematic. Move back and try again')
                 rp.logwarn(

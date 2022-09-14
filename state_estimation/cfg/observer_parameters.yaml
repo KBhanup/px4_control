@@ -13,8 +13,8 @@ Q_v: 0.01
 Q_dq: 0.01
 Q_fd: 0.01
 Q_rb: 0.01
-Q_mp: 1.0e-4
-Q_mdq: 1.0e-4
+Q_mp: 5.0e-4
+Q_mdq: 5.0e-4
 
 # Pose covariance
 R_pose_p: [1.0e-2, 1.0e-2, 1.0e-2]
