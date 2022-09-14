@@ -68,4 +68,4 @@ class FakeGPS():
 
 
 if __name__ == '__main__':
-    FakeGPS(1.0e-4, 1.0e-6)
+    FakeGPS(1.0e-4, 1.0e-4)

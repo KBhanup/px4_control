@@ -6,23 +6,24 @@
 /rosout
 /rosout_agg
 /diagnostics
-			
+
 /mavros/battery
 /mavros/state
 /mavros/rc/in
 /mavros/imu/data
 /mavros/actuator_control
+/mavros/vision_pose/pose
 /mavros/setpoint_raw/local
 /mavros/setpoint_raw/attitude
 /mavros/local_position/odom
-/mavros/vision_pose/pose
 /mavros/global_position/local
 
 /vrpn_client_node/Sensorpack/pose
 /vrpn_client_node/Mag/pose
 
-/stag_ros/markers
 /stag_ros/image_markers
+
+/stag_ros/markers
 /stag_ros/bundles
 /marker/pose
 

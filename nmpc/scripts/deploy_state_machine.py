@@ -6,8 +6,8 @@ import quaternion
 import threading
 
 from magnet_control import MagnetControl
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Vector3
+
+from geometry_msgs.msg import Vector3, PoseStamped
 from mavros_msgs.msg import RCIn
 from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint, MissionState
 
@@ -164,7 +164,7 @@ class StateMachineNode():
                     rp.logwarn(
                         'The marker\'s position changed too much. Updating setpoints')
 
-                    self.calculateMissionSetpoints()  # (self.H_world_marker)
+                    self.calculateMissionSetpoints()
 
     def rcCallback(self, msg):
         if self.mission_bttn != msg.channels[9]:
@@ -347,6 +347,7 @@ class StateMachineNode():
                 self.mission_step += 1
                 self.publish_setpoint = True
 
+            # Check if marker visible
             elif marker_dt.secs > 10.0:
                 rp.logwarn(
                     'More than 10 seconds have passed since the last time marker was detected. Move back and try again')

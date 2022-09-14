@@ -7,7 +7,7 @@ import threading
 
 from magnet_control import MagnetControl
 
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, PoseStamped
 from mavros_msgs.msg import RCIn
 from px4_control_msgs.msg import DroneStateMarker, Trajectory, Setpoint, MissionState
 
@@ -43,6 +43,7 @@ class StateMachineNode():
         # Marker's pose used for setpoints
         self.marker_position = None
         self.marker_orientation = None
+        self.last_marker_seen = None
 
         # Drone's pose and disturbances
         self.drone_position = None
@@ -75,6 +76,8 @@ class StateMachineNode():
             '/drone_state', DroneStateMarker, self.stateCallback, queue_size=1)
         self.rc_sub = rp.Subscriber(
             '/mavros/rc/in', RCIn, self.rcCallback, queue_size=1)
+        self.duration_sub = rp.Subscriber(
+            '/marker/pose', PoseStamped, self.markerCallback, queue_size=1)
 
         # Publishers
         self.trajectory_pub = rp.Publisher(
@@ -165,6 +168,9 @@ class StateMachineNode():
         if self.mission_bttn != msg.channels[9]:
             self.mission_bttn = msg.channels[9]
             self.in_mission = True
+
+    def markerCallback(self, msg):
+        self.last_marker_seen = rp.Time.now()
 
     """
        Helper functions
@@ -267,7 +273,7 @@ class StateMachineNode():
     def checkProximityCondition(self,):
         dz = self.marker_position[2] - self.drone_position[2]
 
-        return dz < 0.2
+        return dz < 0.16
 
     """
        State Machine main function
@@ -295,6 +301,7 @@ class StateMachineNode():
 
         # Try to align, press against base of sensorpack
         elif self.mission_step == 1:
+            marker_dt = rp.Time.now() - self.last_marker_seen
             dt = rp.Time.now() - self.mission_start_t
             dx, dy, dz, do = self.getOffsets()
 
@@ -310,10 +317,17 @@ class StateMachineNode():
                 self.mission_step += 1
                 self.publish_setpoint = True
 
-            # Check time passed
-            elif dt.secs > 20:
+            # Check if marker visible
+            elif marker_dt.secs > 10.0:
                 rp.logwarn(
-                    'More than 20 seconds have passed since started trying to deploy. Move back and try again')
+                    'More than 10 seconds have passed since the last time marker was detected. Move back and try again')
+                self.mission_step -= 1
+                self.publish_setpoint = True
+
+            # Check time passed
+            elif dt.secs > 30:
+                rp.logwarn(
+                    'More than 30 seconds have passed since started trying to deploy. Move back and try again')
                 self.mission_step -= 1
                 self.publish_setpoint = True
 
@@ -344,9 +358,9 @@ class StateMachineNode():
                 self.publish_setpoint = True
 
             # Check time passed
-            elif dt.secs > 20:
+            elif dt.secs > 30:
                 rp.logwarn(
-                    'More than 20 seconds have passed since started trying to Retrive. Move back and try again')
+                    'More than 30 seconds have passed since started trying to Retrive. Move back and try again')
                 rp.loginfo('Disengaging drone magnet')
                 self.drone_magnet.droneMagnetDisengage()
                 self.in_contact = False
