@@ -1,15 +1,15 @@
 # Attitude Dynamics
-t_roll: 0.13549
-k_roll: 0.97015
-t_pitch: 0.12301
-k_pitch: 0.94150
+t_roll: 0.13149
+k_roll: 0.94011
+t_pitch: 0.13345
+k_pitch: 0.95568
 
 # Damping coefficients
-damping_coef: [-0.29944, -0.29944, -0.08535]
+damping_coef: [-0.29336, -0.29336, -0.11582]
 
 # Thrust coefficients
-k_thrust_wt_sensor: 18.93989
-k_thrust_wo_sensor: 22.50307
+k_thrust_wt_sensor: 19.13910
+k_thrust_wo_sensor: 20.80683
 
 # Gravity on world frame
 gravity: -9.8066
@@ -24,12 +24,12 @@ att_w: [1, 1, 5]
 yaw_rate_cmd_w: 70
 pitch_cmd_w: 250
 roll_cmd_w: 250
-thrust_cmd_w: 750
+thrust_cmd_w: 500
 
 # NMPC input constraints
 # bound -> [yaw_cmd, pitch_cmd, roll_cmd, thrust]
-lbu: [-0.15, -0.1, -0.1, 0.31]
-ubu: [ 0.15,  0.1,  0.1, 0.68]
+lbu: [-0.15, -0.1, -0.1, 0.28]
+ubu: [ 0.15,  0.1,  0.1, 0.72]
 
 # Backup PID gains
 x_pid: [1.21, 0.0, 0.2816]
